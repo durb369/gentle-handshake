@@ -57,6 +57,21 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        mystic: {
+          glow: "hsl(var(--mystic-glow))",
+          purple: "hsl(var(--mystic-purple))",
+          deep: "hsl(var(--mystic-deep))",
+          smoke: "hsl(var(--mystic-smoke))",
+        },
+      },
+      backgroundImage: {
+        'mystic-gradient': 'linear-gradient(135deg, hsl(var(--mystic-deep)) 0%, hsl(var(--background)) 50%, hsl(210 25% 10%) 100%)',
+        'glow-gradient': 'radial-gradient(ellipse at center, hsl(var(--mystic-glow) / 0.15) 0%, transparent 70%)',
+      },
+      boxShadow: {
+        'mystic': '0 0 30px hsl(var(--mystic-glow) / 0.3)',
+        'mystic-lg': '0 0 60px hsl(var(--mystic-glow) / 0.4)',
+        'purple-glow': '0 0 40px hsl(var(--mystic-purple) / 0.3)',
       },
       borderRadius: {
         lg: "var(--radius)",
