@@ -14,7 +14,116 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      entity_findings: {
+        Row: {
+          confidence: string | null
+          created_at: string
+          description: string | null
+          entity_type: string
+          height_percent: number | null
+          id: string
+          intent: string | null
+          is_attached: boolean | null
+          location: string | null
+          message: string | null
+          power_level: string | null
+          scan_id: string
+          width_percent: number | null
+          x_percent: number | null
+          y_percent: number | null
+        }
+        Insert: {
+          confidence?: string | null
+          created_at?: string
+          description?: string | null
+          entity_type: string
+          height_percent?: number | null
+          id?: string
+          intent?: string | null
+          is_attached?: boolean | null
+          location?: string | null
+          message?: string | null
+          power_level?: string | null
+          scan_id: string
+          width_percent?: number | null
+          x_percent?: number | null
+          y_percent?: number | null
+        }
+        Update: {
+          confidence?: string | null
+          created_at?: string
+          description?: string | null
+          entity_type?: string
+          height_percent?: number | null
+          id?: string
+          intent?: string | null
+          is_attached?: boolean | null
+          location?: string | null
+          message?: string | null
+          power_level?: string | null
+          scan_id?: string
+          width_percent?: number | null
+          x_percent?: number | null
+          y_percent?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_findings_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "spirit_scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      spirit_scans: {
+        Row: {
+          created_at: string
+          device_id: string
+          dimensional_thinning: string | null
+          dominant_energy: string | null
+          id: string
+          image_url: string
+          interpretation: string | null
+          overall_energy: string | null
+          primary_message: string | null
+          protection_level: string | null
+          protection_needed: boolean | null
+          spiritual_activity: string | null
+          synthesis: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          dimensional_thinning?: string | null
+          dominant_energy?: string | null
+          id?: string
+          image_url: string
+          interpretation?: string | null
+          overall_energy?: string | null
+          primary_message?: string | null
+          protection_level?: string | null
+          protection_needed?: boolean | null
+          spiritual_activity?: string | null
+          synthesis?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          dimensional_thinning?: string | null
+          dominant_energy?: string | null
+          id?: string
+          image_url?: string
+          interpretation?: string | null
+          overall_energy?: string | null
+          primary_message?: string | null
+          protection_level?: string | null
+          protection_needed?: boolean | null
+          spiritual_activity?: string | null
+          synthesis?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

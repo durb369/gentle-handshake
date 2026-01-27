@@ -1,9 +1,20 @@
 import { useState } from "react";
-import { Eye, Sparkles, Ghost, Shield, Moon } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Eye, Sparkles, Ghost, Shield, Moon, BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ImageUploader } from "@/components/ImageUploader";
 import { AnalysisResults } from "@/components/AnalysisResults";
+import { EntityHighlightOverlay } from "@/components/EntityHighlightOverlay";
 import { supabase } from "@/integrations/supabase/client";
+import { useDeviceId } from "@/hooks/useDeviceId";
 import { toast } from "sonner";
+
+interface BoundingBox {
+  xPercent: number;
+  yPercent: number;
+  widthPercent: number;
+  heightPercent: number;
+}
 
 interface Finding {
   description: string;
@@ -15,6 +26,7 @@ interface Finding {
   confidence: string;
   isAttached?: boolean;
   message?: string;
+  boundingBox?: BoundingBox;
 }
 
 interface OverallReading {
@@ -45,28 +57,127 @@ interface AnalysisResult {
 }
 
 const Index = () => {
+  const deviceId = useDeviceId();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState<AnalysisResult | null>(null);
+  const [currentImage, setCurrentImage] = useState<string | null>(null);
+  const [selectedFinding, setSelectedFinding] = useState<number | null>(null);
+
+  const uploadImageToStorage = async (base64: string): Promise<string | null> => {
+    try {
+      // Convert base64 to blob
+      const base64Data = base64.split(",")[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: "image/jpeg" });
+
+      // Upload to storage
+      const fileName = `${deviceId}/${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("spirit-scans")
+        .upload(fileName, blob);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("spirit-scans")
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      return null;
+    }
+  };
+
+  const saveScanToDatabase = async (
+    imageUrl: string,
+    analysisResult: AnalysisResult
+  ) => {
+    try {
+      // Insert scan
+      const { data: scanData, error: scanError } = await supabase
+        .from("spirit_scans")
+        .insert({
+          device_id: deviceId,
+          image_url: imageUrl,
+          overall_energy: analysisResult.overallEnergy,
+          synthesis: analysisResult.synthesis,
+          interpretation: analysisResult.interpretation,
+          dominant_energy: analysisResult.overallReading?.dominantEnergy,
+          spiritual_activity: analysisResult.overallReading?.spiritualActivity,
+          dimensional_thinning: analysisResult.overallReading?.dimensionalThinning,
+          primary_message: analysisResult.overallReading?.primaryMessage,
+          protection_needed: analysisResult.guidance?.protectionNeeded,
+          protection_level: analysisResult.guidance?.protectionLevel,
+        })
+        .select()
+        .single();
+
+      if (scanError) throw scanError;
+
+      // Insert entity findings
+      if (analysisResult.findings.length > 0 && scanData) {
+        const findings = analysisResult.findings.map((finding) => ({
+          scan_id: scanData.id,
+          entity_type: finding.entityType || finding.type,
+          description: finding.description,
+          location: finding.location,
+          intent: finding.intent,
+          power_level: finding.powerLevel,
+          confidence: finding.confidence,
+          is_attached: finding.isAttached || false,
+          message: finding.message,
+          x_percent: finding.boundingBox?.xPercent,
+          y_percent: finding.boundingBox?.yPercent,
+          width_percent: finding.boundingBox?.widthPercent,
+          height_percent: finding.boundingBox?.heightPercent,
+        }));
+
+        const { error: findingsError } = await supabase
+          .from("entity_findings")
+          .insert(findings);
+
+        if (findingsError) throw findingsError;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error saving scan:", error);
+      return false;
+    }
+  };
 
   const handleImageSelect = async (base64: string) => {
     setIsAnalyzing(true);
     setResults(null);
+    setCurrentImage(base64);
+    setSelectedFinding(null);
 
     try {
+      // Analyze the image
       const { data, error } = await supabase.functions.invoke("analyze-image", {
         body: { imageBase64: base64 },
       });
 
-      if (error) {
-        throw error;
-      }
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
 
       setResults(data);
-      toast.success("Spiritual scan complete. The veil has been lifted.");
+
+      // Upload image and save to database
+      const imageUrl = await uploadImageToStorage(base64);
+      if (imageUrl) {
+        await saveScanToDatabase(imageUrl, data);
+        toast.success("Spiritual scan complete and saved to your journal.");
+      } else {
+        toast.success("Spiritual scan complete. The veil has been lifted.");
+      }
     } catch (error) {
       console.error("Analysis error:", error);
       toast.error(
@@ -88,10 +199,16 @@ const Index = () => {
       <div className="relative z-10 container mx-auto px-4 py-8 md:py-12">
         {/* Header */}
         <header className="text-center mb-10 md:mb-14">
-          <div className="inline-flex items-center justify-center gap-2 mb-6">
+          <div className="flex items-center justify-center gap-4 mb-6">
             <div className="p-3 rounded-full bg-primary/10 border border-primary/20 shadow-mystic">
               <Eye className="w-8 h-8 text-primary" />
             </div>
+            <Link to="/journal">
+              <Button variant="outline" className="gap-2">
+                <BookOpen className="w-4 h-4" />
+                Spirit Journal
+              </Button>
+            </Link>
           </div>
           
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 tracking-tight">
@@ -154,14 +271,32 @@ const Index = () => {
           )}
 
           {results && !isAnalyzing && (
-            <AnalysisResults
-              findings={results.findings}
-              overallReading={results.overallReading}
-              synthesis={results.synthesis}
-              guidance={results.guidance}
-              interpretation={results.interpretation}
-              overallEnergy={results.overallEnergy}
-            />
+            <div className="space-y-8">
+              {/* Image with entity highlights */}
+              {currentImage && results.findings.some(f => f.boundingBox) && (
+                <div className="max-w-3xl mx-auto">
+                  <h3 className="text-xl font-bold text-foreground flex items-center gap-2 mb-4">
+                    <Eye className="w-6 h-6 text-primary" />
+                    Entity Locations Revealed
+                  </h3>
+                  <EntityHighlightOverlay
+                    imageUrl={currentImage}
+                    findings={results.findings}
+                    selectedFinding={selectedFinding}
+                    onSelectFinding={setSelectedFinding}
+                  />
+                </div>
+              )}
+
+              <AnalysisResults
+                findings={results.findings}
+                overallReading={results.overallReading}
+                synthesis={results.synthesis}
+                guidance={results.guidance}
+                interpretation={results.interpretation}
+                overallEnergy={results.overallEnergy}
+              />
+            </div>
           )}
         </main>
 
