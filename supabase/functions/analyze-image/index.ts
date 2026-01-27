@@ -85,7 +85,13 @@ RESPONSE FORMAT (JSON):
       "powerLevel": "faint|weak|moderate|strong|powerful|ancient",
       "confidence": "certain|likely|possible",
       "isAttached": true/false,
-      "message": "Any message this entity might be conveying"
+      "message": "Any message this entity might be conveying",
+      "boundingBox": {
+        "xPercent": 0-100 (percentage from left edge where entity starts),
+        "yPercent": 0-100 (percentage from top edge where entity starts),
+        "widthPercent": 0-100 (width as percentage of image width),
+        "heightPercent": 0-100 (height as percentage of image height)
+      }
     }
   ],
   "overallReading": {
@@ -107,6 +113,13 @@ RESPONSE FORMAT (JSON):
   },
   "overallEnergy": "blessed|protected|neutral|concerning|dangerous|transformative|awakening"
 }
+
+IMPORTANT FOR BOUNDING BOXES:
+- ALWAYS provide boundingBox coordinates for each finding
+- Be as precise as possible about WHERE in the image you see the entity
+- Coordinates are percentages (0-100) relative to image dimensions
+- xPercent/yPercent = top-left corner of the entity area
+- widthPercent/heightPercent = size of the area containing the entity
 
 BE THOROUGH. BE MYSTICAL. BE SPECIFIC. 
 Look at every corner, every shadow, every light anomaly.
