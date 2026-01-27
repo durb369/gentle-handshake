@@ -1,7 +1,8 @@
 import { useState, useCallback } from "react";
-import { Upload, X, Eye, Sparkles } from "lucide-react";
+import { Upload, X, Eye, Sparkles, Camera, Aperture } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CameraCapture } from "./CameraCapture";
 
 interface ImageUploaderProps {
   onImageSelect: (base64: string) => void;
@@ -11,6 +12,7 @@ interface ImageUploaderProps {
 export function ImageUploader({ onImageSelect, isAnalyzing }: ImageUploaderProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
 
   const handleFile = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -57,58 +59,99 @@ export function ImageUploader({ onImageSelect, isAnalyzing }: ImageUploaderProps
     setPreview(null);
   };
 
+  const handleCameraCapture = (base64: string) => {
+    setPreview(base64);
+    setShowCamera(false);
+  };
+
+  if (showCamera) {
+    return (
+      <CameraCapture 
+        onCapture={handleCameraCapture} 
+        onClose={() => setShowCamera(false)} 
+      />
+    );
+  }
+
   return (
     <div className="w-full max-w-2xl mx-auto">
       {!preview ? (
-        <label
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          className={cn(
-            "flex flex-col items-center justify-center w-full h-80 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-500",
-            "bg-card/30 backdrop-blur-sm relative overflow-hidden group",
-            isDragging 
-              ? "border-primary bg-primary/10 shadow-mystic-lg" 
-              : "border-border hover:border-primary/50 hover:bg-card/50 hover:shadow-mystic"
-          )}
-        >
-          {/* Glow effect on hover */}
-          <div className="absolute inset-0 bg-glow-gradient opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          
-          <div className="relative z-10 flex flex-col items-center justify-center pt-5 pb-6">
-            <div className={cn(
-              "p-5 rounded-full mb-5 transition-all duration-500",
-              isDragging 
-                ? "bg-primary/20 shadow-mystic" 
-                : "bg-muted group-hover:bg-primary/10 group-hover:shadow-mystic"
-            )}>
-              <Upload className={cn(
-                "w-12 h-12 transition-all duration-300",
-                isDragging ? "text-primary" : "text-muted-foreground group-hover:text-primary"
-              )} />
+        <div className="space-y-4">
+          {/* Camera Button */}
+          <Button
+            onClick={() => setShowCamera(true)}
+            variant="outline"
+            className="w-full py-8 border-2 border-dashed border-accent/50 hover:border-accent hover:bg-accent/10 transition-all duration-300 group"
+          >
+            <div className="flex flex-col items-center gap-3">
+              <div className="p-4 rounded-full bg-accent/10 group-hover:bg-accent/20 group-hover:shadow-purple-glow transition-all">
+                <Aperture className="w-8 h-8 text-accent" />
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-foreground">Use Reflection Filter Camera</p>
+                <p className="text-xs text-muted-foreground">Capture with the dimensional mirror filter</p>
+              </div>
             </div>
-            
-            <p className="mb-2 text-xl font-semibold text-foreground">
-              Upload Your Image
-            </p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Drop your photo here or click to browse
-            </p>
-            
-            <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
-              <Sparkles className="w-3 h-3" />
-              <span>Photos with smoke, mist, or shadows work best</span>
-              <Sparkles className="w-3 h-3" />
-            </div>
+          </Button>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="flex-1 h-px bg-border" />
           </div>
-          
-          <input
-            type="file"
-            className="hidden"
-            accept="image/*"
-            onChange={handleInputChange}
-          />
-        </label>
+
+          {/* Upload Area */}
+          <label
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            className={cn(
+              "flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-500",
+              "bg-card/30 backdrop-blur-sm relative overflow-hidden group",
+              isDragging 
+                ? "border-primary bg-primary/10 shadow-mystic-lg" 
+                : "border-border hover:border-primary/50 hover:bg-card/50 hover:shadow-mystic"
+            )}
+          >
+            {/* Glow effect on hover */}
+            <div className="absolute inset-0 bg-glow-gradient opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            <div className="relative z-10 flex flex-col items-center justify-center pt-5 pb-6">
+              <div className={cn(
+                "p-4 rounded-full mb-4 transition-all duration-500",
+                isDragging 
+                  ? "bg-primary/20 shadow-mystic" 
+                  : "bg-muted group-hover:bg-primary/10 group-hover:shadow-mystic"
+              )}>
+                <Upload className={cn(
+                  "w-10 h-10 transition-all duration-300",
+                  isDragging ? "text-primary" : "text-muted-foreground group-hover:text-primary"
+                )} />
+              </div>
+              
+              <p className="mb-2 text-lg font-semibold text-foreground">
+                Upload Existing Photo
+              </p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Drop your photo here or click to browse
+              </p>
+              
+              <div className="flex items-center gap-2 text-xs text-muted-foreground/70">
+                <Sparkles className="w-3 h-3" />
+                <span>Photos with smoke, mist, or shadows work best</span>
+                <Sparkles className="w-3 h-3" />
+              </div>
+            </div>
+            
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={handleInputChange}
+            />
+          </label>
+        </div>
       ) : (
         <div className="relative rounded-2xl overflow-hidden bg-card/50 backdrop-blur-sm border border-border shadow-mystic">
           {/* Image */}
