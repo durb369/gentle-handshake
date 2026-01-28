@@ -1,13 +1,16 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Eye, Sparkles, Ghost, Shield, Moon, BookOpen, Book } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "@/components/ImageUploader";
 import { AnalysisResults } from "@/components/AnalysisResults";
 import { EntityHighlightOverlay } from "@/components/EntityHighlightOverlay";
+import { CreditErrorBanner } from "@/components/CreditErrorBanner";
 import { supabase } from "@/integrations/supabase/client";
 import { useDeviceId } from "@/hooks/useDeviceId";
 import { toast } from "sonner";
+
+type CreditErrorType = "credits" | "rateLimit" | null;
 
 interface BoundingBox {
   xPercent: number;
@@ -62,6 +65,8 @@ const Index = () => {
   const [results, setResults] = useState<AnalysisResult | null>(null);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [selectedFinding, setSelectedFinding] = useState<number | null>(null);
+  const [creditError, setCreditError] = useState<CreditErrorType>(null);
+  const [pendingImage, setPendingImage] = useState<string | null>(null);
 
   const uploadImageToStorage = async (base64: string): Promise<string | null> => {
     try {
@@ -158,6 +163,8 @@ const Index = () => {
     setResults(null);
     setCurrentImage(base64);
     setSelectedFinding(null);
+    setCreditError(null);
+    setPendingImage(base64);
 
     try {
       // Analyze the image
@@ -165,10 +172,42 @@ const Index = () => {
         body: { imageBase64: base64 },
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      if (error) {
+        // Check if it's a FunctionsHttpError with status info
+        const status = (error as any)?.context?.status;
+        if (status === 402 || (data?.error?.includes?.("usage limit") ?? false)) {
+          setCreditError("credits");
+          toast.error("AI credits exhausted. Please add credits to continue.");
+          setIsAnalyzing(false);
+          return;
+        }
+        if (status === 429 || (data?.error?.includes?.("Rate limit") ?? false)) {
+          setCreditError("rateLimit");
+          toast.error("Rate limit reached. Please wait before trying again.");
+          setIsAnalyzing(false);
+          return;
+        }
+        throw error;
+      }
+
+      if (data?.error) {
+        if (data.error.includes("usage limit") || data.error.includes("add credits")) {
+          setCreditError("credits");
+          toast.error("AI credits exhausted. Please add credits to continue.");
+          setIsAnalyzing(false);
+          return;
+        }
+        if (data.error.includes("Rate limit")) {
+          setCreditError("rateLimit");
+          toast.error("Rate limit reached. Please wait before trying again.");
+          setIsAnalyzing(false);
+          return;
+        }
+        throw new Error(data.error);
+      }
 
       setResults(data);
+      setPendingImage(null);
 
       // Upload image and save to database
       const imageUrl = await uploadImageToStorage(base64);
@@ -187,6 +226,16 @@ const Index = () => {
       setIsAnalyzing(false);
     }
   };
+
+  const handleRetry = useCallback(() => {
+    if (pendingImage) {
+      handleImageSelect(pendingImage);
+    }
+  }, [pendingImage]);
+
+  const handleDismissError = useCallback(() => {
+    setCreditError(null);
+  }, []);
 
   return (
     <div className="min-h-screen bg-mystic-gradient relative overflow-hidden">
@@ -245,9 +294,16 @@ const Index = () => {
 
         {/* Main content */}
         <main className="space-y-12">
+          <CreditErrorBanner
+            errorType={creditError}
+            onRetry={handleRetry}
+            onDismiss={handleDismissError}
+          />
+
           <ImageUploader
             onImageSelect={handleImageSelect}
             isAnalyzing={isAnalyzing}
+            disabled={creditError === "credits"}
           />
 
           {isAnalyzing && (

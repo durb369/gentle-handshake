@@ -7,9 +7,10 @@ import { CameraCapture } from "./CameraCapture";
 interface ImageUploaderProps {
   onImageSelect: (base64: string) => void;
   isAnalyzing: boolean;
+  disabled?: boolean;
 }
 
-export function ImageUploader({ onImageSelect, isAnalyzing }: ImageUploaderProps) {
+export function ImageUploader({ onImageSelect, isAnalyzing, disabled = false }: ImageUploaderProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
@@ -181,7 +182,7 @@ export function ImageUploader({ onImageSelect, isAnalyzing }: ImageUploaderProps
           <div className="p-5 border-t border-border bg-card/80 backdrop-blur-sm">
             <Button
               onClick={handleAnalyze}
-              disabled={isAnalyzing}
+              disabled={isAnalyzing || disabled}
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-7 text-lg shadow-mystic transition-all duration-300 hover:shadow-mystic-lg disabled:opacity-50"
             >
               {isAnalyzing ? (
