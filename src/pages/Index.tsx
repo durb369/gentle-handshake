@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Eye, Sparkles, Ghost, Shield, Moon, BookOpen } from "lucide-react";
+import { Eye, Sparkles, Ghost, Shield, Moon, BookOpen, Book } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageUploader } from "@/components/ImageUploader";
 import { AnalysisResults } from "@/components/AnalysisResults";
@@ -206,7 +206,13 @@ const Index = () => {
             <Link to="/journal">
               <Button variant="outline" className="gap-2">
                 <BookOpen className="w-4 h-4" />
-                Spirit Journal
+                Journal
+              </Button>
+            </Link>
+            <Link to="/encyclopedia">
+              <Button variant="outline" className="gap-2">
+                <Book className="w-4 h-4" />
+                Bestiary
               </Button>
             </Link>
           </div>
