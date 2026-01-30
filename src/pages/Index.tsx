@@ -173,15 +173,37 @@ const Index = () => {
       });
 
       if (error) {
-        // Check if it's a FunctionsHttpError with status info
-        const status = (error as any)?.context?.status;
-        if (status === 402 || (data?.error?.includes?.("usage limit") ?? false)) {
+        // supabase-js may surface edge-function errors in multiple shapes.
+        // We must be defensive here to prevent throwing on known 402/429 cases.
+        const status =
+          (error as any)?.context?.status ??
+          (error as any)?.status ??
+          (error as any)?.cause?.status;
+        const message =
+          (error as any)?.message ??
+          (error as any)?.error_description ??
+          "";
+
+        const looksLike402 =
+          status === 402 ||
+          /\b402\b/.test(message) ||
+          (data?.error?.includes?.("usage limit") ?? false) ||
+          (data?.error?.includes?.("add credits") ?? false) ||
+          /usage limit|add credits|credits?/i.test(message);
+
+        const looksLike429 =
+          status === 429 ||
+          /\b429\b/.test(message) ||
+          (data?.error?.includes?.("Rate limit") ?? false) ||
+          /rate limit|too many requests/i.test(message);
+
+        if (looksLike402) {
           setCreditError("credits");
           toast.error("AI credits exhausted. Please add credits to continue.");
           setIsAnalyzing(false);
           return;
         }
-        if (status === 429 || (data?.error?.includes?.("Rate limit") ?? false)) {
+        if (looksLike429) {
           setCreditError("rateLimit");
           toast.error("Rate limit reached. Please wait before trying again.");
           setIsAnalyzing(false);
