@@ -13,7 +13,7 @@ import { useSpiritScan } from "@/hooks/useSpiritScan";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useScanLimit } from "@/hooks/useScanLimit";
 import { useEntitySketch } from "@/hooks/useEntitySketch";
-import { Crown, ImageIcon } from "lucide-react";
+import { Crown, ImageIcon, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Finding } from "@/hooks/useSpiritScan";
 
@@ -59,15 +59,21 @@ const Index = () => {
         {/* Boosted Status / Gallery Link */}
         <div className="flex justify-center mb-6">
           {isBoosted ? (
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-3">
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 text-sm font-medium">
                 <Crown className="w-4 h-4" />
                 Boosted Active
               </span>
               <Button asChild variant="outline" size="sm">
+                <Link to="/psychic" className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4" />
+                  Psychic Portal
+                </Link>
+              </Button>
+              <Button asChild variant="outline" size="sm">
                 <Link to="/gallery" className="flex items-center gap-2">
                   <ImageIcon className="w-4 h-4" />
-                  View Gallery
+                  Gallery
                 </Link>
               </Button>
             </div>
