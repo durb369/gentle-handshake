@@ -1,3 +1,5 @@
+import { useCallback } from "react";
+import { Link } from "react-router-dom";
 import { ImageUploader } from "@/components/ImageUploader";
 import { CreditErrorBanner } from "@/components/CreditErrorBanner";
 import {
@@ -7,6 +9,11 @@ import {
   SpiritVisionFooter,
 } from "@/components/home";
 import { useSpiritScan } from "@/hooks/useSpiritScan";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useEntitySketch } from "@/hooks/useEntitySketch";
+import { Crown, ImageIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import type { Finding } from "@/hooks/useSpiritScan";
 
 const Index = () => {
   const {
@@ -21,6 +28,13 @@ const Index = () => {
     handleDismissError,
   } = useSpiritScan();
 
+  const { isBoosted, startCheckout, loading: subscriptionLoading } = useSubscription();
+  const { generateSketch, isGenerating, generatingIndex } = useEntitySketch();
+
+  const handleGenerateSketch = useCallback(async (finding: Finding, index: number) => {
+    await generateSketch(finding, index);
+  }, [generateSketch]);
+
   return (
     <div className="min-h-screen bg-mystic-gradient relative overflow-hidden">
       {/* Animated background elements */}
@@ -31,6 +45,33 @@ const Index = () => {
 
       <div className="relative z-10 container mx-auto px-4 py-8 md:py-12">
         <SpiritVisionHeader />
+
+        {/* Boosted Status / Gallery Link */}
+        <div className="flex justify-center mb-6">
+          {isBoosted ? (
+            <div className="flex items-center gap-4">
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 text-sm font-medium">
+                <Crown className="w-4 h-4" />
+                Boosted Active
+              </span>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/gallery" className="flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" />
+                  View Gallery
+                </Link>
+              </Button>
+            </div>
+          ) : !subscriptionLoading && (
+            <Button
+              onClick={() => startCheckout()}
+              variant="outline"
+              className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Upgrade to Boosted - $1/month
+            </Button>
+          )}
+        </div>
 
         <main className="space-y-12">
           <CreditErrorBanner
@@ -53,6 +94,11 @@ const Index = () => {
               currentImage={currentImage}
               selectedFinding={selectedFinding}
               onSelectFinding={setSelectedFinding}
+              isBoosted={isBoosted}
+              onUpgrade={startCheckout}
+              onGenerateSketch={handleGenerateSketch}
+              isGeneratingSketch={isGenerating}
+              generatingSketchIndex={generatingIndex}
             />
           )}
         </main>

@@ -1,37 +1,19 @@
+import { useState, useRef, useCallback } from "react";
 import { 
   Eye, MapPin, Sparkles, AlertCircle, Shield, AlertTriangle, 
-  Heart, Zap, Moon, Sun, Skull, Ghost, Star, Flame 
+  Heart, Zap, Moon, Sun, Skull, Ghost, Star, Flame, Lock, Crown, 
+  Paintbrush, Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Finding {
-  description: string;
-  location: string;
-  type: string;
-  entityType?: string;
-  intent?: string;
-  powerLevel?: string;
-  confidence: string;
-  isAttached?: boolean;
-  message?: string;
-}
+import { Button } from "@/components/ui/button";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
+import type { Finding, Guidance } from "@/hooks/useSpiritScan";
 
 interface OverallReading {
   dominantEnergy: string;
   spiritualActivity: string;
   dimensionalThinning: string;
   primaryMessage: string;
-}
-
-interface Guidance {
-  immediateAdvice: string;
-  spiritualMeaning: string;
-  protectionNeeded: boolean;
-  protectionLevel: string;
-  protectionMethods: string[];
-  ritualRecommendations: string[];
-  warnings: string[];
-  blessings: string[];
 }
 
 interface AnalysisResultsProps {
@@ -41,6 +23,11 @@ interface AnalysisResultsProps {
   guidance?: Guidance;
   interpretation?: string;
   overallEnergy: string;
+  isBoosted?: boolean;
+  onUpgrade?: (email?: string) => Promise<string | null>;
+  onGenerateSketch?: (finding: Finding, index: number) => Promise<void>;
+  isGeneratingSketch?: boolean;
+  generatingSketchIndex?: number | null;
 }
 
 const energyConfig: Record<string, { gradient: string; icon: typeof Sun; label: string }> = {
@@ -103,10 +90,21 @@ export function AnalysisResults({
   synthesis,
   guidance,
   interpretation,
-  overallEnergy 
+  overallEnergy,
+  isBoosted = false,
+  onUpgrade,
+  onGenerateSketch,
+  isGeneratingSketch = false,
+  generatingSketchIndex = null,
 }: AnalysisResultsProps) {
   const energyData = energyConfig[overallEnergy] || energyConfig.mysterious;
   const EnergyIcon = energyData.icon;
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const upgradeRef = useRef<HTMLDivElement>(null);
+
+  const scrollToUpgrade = useCallback(() => {
+    upgradeRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -158,61 +156,100 @@ export function AnalysisResults({
             Entities & Presences Detected ({findings.length})
           </h3>
           <div className="grid gap-4">
-            {findings.map((finding, index) => (
-              <div
-                key={index}
-                className="p-5 rounded-xl bg-card/60 border border-border backdrop-blur-sm hover:border-primary/40 transition-all duration-300 hover:shadow-mystic"
-              >
-                <div className="flex items-start gap-4">
-                  <span className="text-3xl">{typeIcons[finding.type] || "👁"}</span>
-                  <div className="flex-1 space-y-3">
-                    <div>
-                      <p className="text-foreground font-semibold text-lg">{finding.description}</p>
-                      {finding.entityType && (
-                        <p className="text-primary font-medium">{finding.entityType}</p>
-                      )}
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
-                        <MapPin className="w-3 h-3" />
-                        {finding.location}
-                      </span>
-                      
-                      {finding.intent && (
-                        <span className={cn(
-                          "text-xs px-2 py-1 rounded border font-medium",
-                          intentColors[finding.intent] || intentColors.neutral
-                        )}>
-                          {finding.intent}
-                        </span>
-                      )}
-                      
-                      {finding.powerLevel && (
-                        <span className={cn(
-                          "text-xs px-2 py-1 rounded bg-muted font-medium",
-                          powerColors[finding.powerLevel] || "text-muted-foreground"
-                        )}>
-                          ⚡ {finding.powerLevel}
-                        </span>
-                      )}
-
-                      {finding.isAttached && (
-                        <span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400 border border-red-500/30">
-                          ATTACHED
-                        </span>
-                      )}
-                    </div>
-
-                    {finding.message && (
-                      <div className="p-3 rounded-lg bg-accent/10 border border-accent/20">
-                        <p className="text-sm text-accent italic">"{finding.message}"</p>
+            {findings.map((finding, index) => {
+              const isThisGenerating = isGeneratingSketch && generatingSketchIndex === index;
+              
+              return (
+                <div
+                  key={index}
+                  className="p-5 rounded-xl bg-card/60 border border-border backdrop-blur-sm hover:border-primary/40 transition-all duration-300 hover:shadow-mystic"
+                >
+                  <div className="flex items-start gap-4">
+                    <span className="text-3xl">{typeIcons[finding.type] || "👁"}</span>
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <p className="text-foreground font-semibold text-lg">{finding.description}</p>
+                        {finding.entityType && (
+                          <p className="text-primary font-medium">{finding.entityType}</p>
+                        )}
                       </div>
-                    )}
+                      
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          <MapPin className="w-3 h-3" />
+                          {finding.location}
+                        </span>
+                        
+                        {finding.intent && (
+                          <span className={cn(
+                            "text-xs px-2 py-1 rounded border font-medium",
+                            intentColors[finding.intent] || intentColors.neutral
+                          )}>
+                            {finding.intent}
+                          </span>
+                        )}
+                        
+                        {finding.powerLevel && (
+                          <span className={cn(
+                            "text-xs px-2 py-1 rounded bg-muted font-medium",
+                            powerColors[finding.powerLevel] || "text-muted-foreground"
+                          )}>
+                            ⚡ {finding.powerLevel}
+                          </span>
+                        )}
+
+                        {finding.isAttached && (
+                          <span className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+                            ATTACHED
+                          </span>
+                        )}
+                      </div>
+
+                      {finding.message && (
+                        <div className="p-3 rounded-lg bg-accent/10 border border-accent/20">
+                          <p className="text-sm text-accent italic">"{finding.message}"</p>
+                        </div>
+                      )}
+
+                      {/* Sketch Generation Button */}
+                      <div className="pt-2">
+                        {isBoosted && onGenerateSketch ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onGenerateSketch(finding, index)}
+                            disabled={isGeneratingSketch}
+                            className="border-primary/30 text-primary hover:bg-primary/10"
+                          >
+                            {isThisGenerating ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                Creating Sketch...
+                              </>
+                            ) : (
+                              <>
+                                <Paintbrush className="w-4 h-4 mr-1" />
+                                Generate Sketch
+                              </>
+                            )}
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={scrollToUpgrade}
+                            className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                          >
+                            <Lock className="w-4 h-4 mr-1" />
+                            Sketch (Boosted)
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : (
@@ -224,7 +261,7 @@ export function AnalysisResults({
         </div>
       )}
 
-      {/* Synthesis - The Big Picture */}
+      {/* Synthesis - The Big Picture (FREE) */}
       {synthesis && (
         <div className="p-6 rounded-2xl bg-gradient-to-br from-primary/10 via-card to-accent/10 border border-primary/30 backdrop-blur-sm">
           <h3 className="text-xl font-bold text-foreground flex items-center gap-2 mb-4">
@@ -237,111 +274,124 @@ export function AnalysisResults({
         </div>
       )}
 
-      {/* Guidance Section */}
+      {/* Guidance Section - BOOSTED ONLY */}
       {guidance && (
-        <div className="space-y-4">
-          {/* Protection Status */}
-          {guidance.protectionNeeded && (
-            <div className={cn(
-              "p-5 rounded-xl border-2",
-              protectionLevelColors[guidance.protectionLevel] || protectionLevelColors.basic
-            )}>
-              <div className="flex items-center gap-3 mb-3">
-                <Shield className="w-6 h-6" />
-                <span className="font-bold text-lg uppercase tracking-wide">
-                  {guidance.protectionLevel === "urgent" ? "⚠️ URGENT PROTECTION NEEDED" : 
-                   guidance.protectionLevel === "serious" ? "Protection Recommended" :
-                   "Light Protection Suggested"}
-                </span>
+        <>
+          {isBoosted ? (
+            <div className="space-y-4">
+              {/* Protection Status */}
+              {guidance.protectionNeeded && (
+                <div className={cn(
+                  "p-5 rounded-xl border-2",
+                  protectionLevelColors[guidance.protectionLevel] || protectionLevelColors.basic
+                )}>
+                  <div className="flex items-center gap-3 mb-3">
+                    <Shield className="w-6 h-6" />
+                    <span className="font-bold text-lg uppercase tracking-wide">
+                      {guidance.protectionLevel === "urgent" ? "⚠️ URGENT PROTECTION NEEDED" : 
+                       guidance.protectionLevel === "serious" ? "Protection Recommended" :
+                       "Light Protection Suggested"}
+                    </span>
+                  </div>
+                  {guidance.protectionMethods.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="font-semibold text-sm uppercase tracking-wider opacity-80">Protection Methods:</p>
+                      <ul className="space-y-1">
+                        {guidance.protectionMethods.map((method, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm">
+                            <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                            {method}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Immediate Advice */}
+              <div className="p-5 rounded-xl bg-card/60 border border-border">
+                <h4 className="font-bold text-foreground flex items-center gap-2 mb-3">
+                  <Zap className="w-5 h-5 text-amber-400" />
+                  Immediate Guidance
+                </h4>
+                <p className="text-foreground/90">{guidance.immediateAdvice}</p>
               </div>
-              {guidance.protectionMethods.length > 0 && (
-                <div className="space-y-2">
-                  <p className="font-semibold text-sm uppercase tracking-wider opacity-80">Protection Methods:</p>
-                  <ul className="space-y-1">
-                    {guidance.protectionMethods.map((method, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <Shield className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                        {method}
+
+              {/* Spiritual Meaning */}
+              <div className="p-5 rounded-xl bg-card/60 border border-border">
+                <h4 className="font-bold text-foreground flex items-center gap-2 mb-3">
+                  <Moon className="w-5 h-5 text-violet-400" />
+                  Metaphysical Significance
+                </h4>
+                <p className="text-foreground/90">{guidance.spiritualMeaning}</p>
+              </div>
+
+              {/* Warnings */}
+              {guidance.warnings && guidance.warnings.length > 0 && (
+                <div className="p-5 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <h4 className="font-bold text-red-400 flex items-center gap-2 mb-3">
+                    <AlertTriangle className="w-5 h-5" />
+                    Warnings
+                  </h4>
+                  <ul className="space-y-2">
+                    {guidance.warnings.map((warning, i) => (
+                      <li key={i} className="flex items-start gap-2 text-red-300">
+                        <span className="text-red-500">•</span>
+                        {warning}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Blessings */}
+              {guidance.blessings && guidance.blessings.length > 0 && (
+                <div className="p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                  <h4 className="font-bold text-emerald-400 flex items-center gap-2 mb-3">
+                    <Heart className="w-5 h-5" />
+                    Blessings Received
+                  </h4>
+                  <ul className="space-y-2">
+                    {guidance.blessings.map((blessing, i) => (
+                      <li key={i} className="flex items-start gap-2 text-emerald-300">
+                        <span className="text-emerald-500">✦</span>
+                        {blessing}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Ritual Recommendations */}
+              {guidance.ritualRecommendations && guidance.ritualRecommendations.length > 0 && (
+                <div className="p-5 rounded-xl bg-violet-500/10 border border-violet-500/30">
+                  <h4 className="font-bold text-violet-400 flex items-center gap-2 mb-3">
+                    <Flame className="w-5 h-5" />
+                    Recommended Rituals & Practices
+                  </h4>
+                  <ul className="space-y-2">
+                    {guidance.ritualRecommendations.map((ritual, i) => (
+                      <li key={i} className="flex items-start gap-2 text-violet-300">
+                        <span className="text-violet-500">◇</span>
+                        {ritual}
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
             </div>
-          )}
-
-          {/* Immediate Advice */}
-          <div className="p-5 rounded-xl bg-card/60 border border-border">
-            <h4 className="font-bold text-foreground flex items-center gap-2 mb-3">
-              <Zap className="w-5 h-5 text-amber-400" />
-              Immediate Guidance
-            </h4>
-            <p className="text-foreground/90">{guidance.immediateAdvice}</p>
-          </div>
-
-          {/* Spiritual Meaning */}
-          <div className="p-5 rounded-xl bg-card/60 border border-border">
-            <h4 className="font-bold text-foreground flex items-center gap-2 mb-3">
-              <Moon className="w-5 h-5 text-violet-400" />
-              Metaphysical Significance
-            </h4>
-            <p className="text-foreground/90">{guidance.spiritualMeaning}</p>
-          </div>
-
-          {/* Warnings */}
-          {guidance.warnings && guidance.warnings.length > 0 && (
-            <div className="p-5 rounded-xl bg-red-500/10 border border-red-500/30">
-              <h4 className="font-bold text-red-400 flex items-center gap-2 mb-3">
-                <AlertTriangle className="w-5 h-5" />
-                Warnings
-              </h4>
-              <ul className="space-y-2">
-                {guidance.warnings.map((warning, i) => (
-                  <li key={i} className="flex items-start gap-2 text-red-300">
-                    <span className="text-red-500">•</span>
-                    {warning}
-                  </li>
-                ))}
-              </ul>
+          ) : (
+            /* Upgrade Prompt for Non-Boosted Users */
+            <div ref={upgradeRef}>
+              <UpgradePrompt 
+                onUpgrade={onUpgrade || (async () => null)} 
+                variant="full" 
+                featureName="Spiritual Guidance & Protection"
+              />
             </div>
           )}
-
-          {/* Blessings */}
-          {guidance.blessings && guidance.blessings.length > 0 && (
-            <div className="p-5 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-              <h4 className="font-bold text-emerald-400 flex items-center gap-2 mb-3">
-                <Heart className="w-5 h-5" />
-                Blessings Received
-              </h4>
-              <ul className="space-y-2">
-                {guidance.blessings.map((blessing, i) => (
-                  <li key={i} className="flex items-start gap-2 text-emerald-300">
-                    <span className="text-emerald-500">✦</span>
-                    {blessing}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Ritual Recommendations */}
-          {guidance.ritualRecommendations && guidance.ritualRecommendations.length > 0 && (
-            <div className="p-5 rounded-xl bg-violet-500/10 border border-violet-500/30">
-              <h4 className="font-bold text-violet-400 flex items-center gap-2 mb-3">
-                <Flame className="w-5 h-5" />
-                Recommended Rituals & Practices
-              </h4>
-              <ul className="space-y-2">
-                {guidance.ritualRecommendations.map((ritual, i) => (
-                  <li key={i} className="flex items-start gap-2 text-violet-300">
-                    <span className="text-violet-500">◇</span>
-                    {ritual}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
+        </>
       )}
 
       {/* Fallback interpretation for simpler responses */}
