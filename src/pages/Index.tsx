@@ -42,8 +42,8 @@ const Index = () => {
   }, [startCheckout]);
 
   const handleGenerateSketch = useCallback(async (finding: Finding, index: number) => {
-    await generateSketch(finding, index);
-  }, [generateSketch]);
+    await generateSketch(finding, index, undefined, currentImage ?? undefined);
+  }, [generateSketch, currentImage]);
 
   return (
     <div className="min-h-screen bg-mystic-gradient relative overflow-hidden">
