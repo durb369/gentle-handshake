@@ -12,27 +12,27 @@ interface ImagingModeSelectorProps {
 const modes = [
   {
     id: "reflection" as const,
-    label: "Reflection",
+    label: "Spirit Glass",
     icon: Aperture,
-    description: "Window glass effects",
+    description: "Dimensional breach detection",
   },
   {
     id: "thermal" as const,
-    label: "Thermal",
+    label: "Energy Field",
     icon: Flame,
-    description: "Heat signature detection",
+    description: "Entity heat signatures",
   },
   {
     id: "hyperspectral" as const,
-    label: "Spectral",
+    label: "Beyond Sight",
     icon: Sparkles,
-    description: "Multi-band analysis",
+    description: "Hidden frequency scanner",
   },
   {
     id: "polarimetric" as const,
-    label: "Polarimetric",
+    label: "Aura Vision",
     icon: Eye,
-    description: "Surface stress patterns",
+    description: "Energy field visualization",
   },
 ];
 
