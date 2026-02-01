@@ -76,6 +76,47 @@ export type Database = {
           },
         ]
       }
+      entity_sketches: {
+        Row: {
+          created_at: string
+          device_id: string
+          entity_description: string | null
+          entity_type: string
+          finding_index: number
+          id: string
+          scan_id: string | null
+          sketch_url: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          entity_description?: string | null
+          entity_type: string
+          finding_index: number
+          id?: string
+          scan_id?: string | null
+          sketch_url: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          entity_description?: string | null
+          entity_type?: string
+          finding_index?: number
+          id?: string
+          scan_id?: string | null
+          sketch_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_sketches_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "spirit_scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spirit_scans: {
         Row: {
           created_at: string
@@ -121,6 +162,42 @@ export type Database = {
           protection_needed?: boolean | null
           spiritual_activity?: string | null
           synthesis?: string | null
+        }
+        Relationships: []
+      }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          device_id: string
+          id: string
+          is_active: boolean
+          product_id: string | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_end: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          id?: string
+          is_active?: boolean
+          product_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_end?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          id?: string
+          is_active?: boolean
+          product_id?: string | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_end?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

@@ -8,6 +8,11 @@ interface ScanResultsDisplayProps {
   currentImage: string | null;
   selectedFinding: number | null;
   onSelectFinding: (index: number | null) => void;
+  isBoosted?: boolean;
+  onUpgrade?: (email?: string) => Promise<string | null>;
+  onGenerateSketch?: (finding: Finding, index: number) => Promise<void>;
+  isGeneratingSketch?: boolean;
+  generatingSketchIndex?: number | null;
 }
 
 export function ScanResultsDisplay({
@@ -15,6 +20,11 @@ export function ScanResultsDisplay({
   currentImage,
   selectedFinding,
   onSelectFinding,
+  isBoosted = false,
+  onUpgrade,
+  onGenerateSketch,
+  isGeneratingSketch = false,
+  generatingSketchIndex = null,
 }: ScanResultsDisplayProps) {
   const hasEntityLocations = results.findings.some((f) => f.boundingBox);
 
@@ -42,6 +52,11 @@ export function ScanResultsDisplay({
         guidance={results.guidance}
         interpretation={results.interpretation}
         overallEnergy={results.overallEnergy}
+        isBoosted={isBoosted}
+        onUpgrade={onUpgrade}
+        onGenerateSketch={onGenerateSketch}
+        isGeneratingSketch={isGeneratingSketch}
+        generatingSketchIndex={generatingSketchIndex}
       />
     </div>
   );
