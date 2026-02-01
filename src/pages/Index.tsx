@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { Link } from "react-router-dom";
 import { ImageUploader } from "@/components/ImageUploader";
 import { CreditErrorBanner } from "@/components/CreditErrorBanner";
+import { ScanLimitBanner } from "@/components/ScanLimitBanner";
 import {
   SpiritVisionHeader,
   ScanLoadingState,
@@ -10,6 +11,7 @@ import {
 } from "@/components/home";
 import { useSpiritScan } from "@/hooks/useSpiritScan";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useScanLimit } from "@/hooks/useScanLimit";
 import { useEntitySketch } from "@/hooks/useEntitySketch";
 import { Crown, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,7 +31,15 @@ const Index = () => {
   } = useSpiritScan();
 
   const { isBoosted, startCheckout, loading: subscriptionLoading } = useSubscription();
+  const { scanCount, remainingScans, hasReachedLimit, refreshScanCount } = useScanLimit(isBoosted);
   const { generateSketch, isGenerating, generatingIndex } = useEntitySketch();
+
+  const handleUpgrade = useCallback(async () => {
+    const url = await startCheckout();
+    if (url) {
+      window.open(url, "_blank");
+    }
+  }, [startCheckout]);
 
   const handleGenerateSketch = useCallback(async (finding: Finding, index: number) => {
     await generateSketch(finding, index);
@@ -73,17 +83,29 @@ const Index = () => {
           )}
         </div>
 
-        <main className="space-y-12">
+        <main className="space-y-8">
           <CreditErrorBanner
             errorType={creditError}
             onRetry={handleRetry}
             onDismiss={handleDismissError}
           />
 
+          <ScanLimitBanner
+            scanCount={scanCount}
+            remainingScans={remainingScans}
+            hasReachedLimit={hasReachedLimit}
+            isBoosted={isBoosted}
+            onUpgrade={handleUpgrade}
+          />
+
           <ImageUploader
-            onImageSelect={handleImageSelect}
+            onImageSelect={(base64) => {
+              handleImageSelect(base64);
+              // Refresh scan count after successful scan
+              setTimeout(refreshScanCount, 3000);
+            }}
             isAnalyzing={isAnalyzing}
-            disabled={creditError === "credits"}
+            disabled={creditError === "credits" || hasReachedLimit}
           />
 
           {isAnalyzing && <ScanLoadingState />}
