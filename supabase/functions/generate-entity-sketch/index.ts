@@ -43,18 +43,36 @@ serve(async (req) => {
     }
 
     // Build the prompt for transforming the detected region into a mystical sketch
-    const sketchPrompt = `Transform this image region into a mystical, hand-drawn pencil/charcoal sketch illustration.
-This region shows a detected ${entityType}.
-Style: Dark, atmospheric sketch with ethereal glow effects. Ancient manuscript or grimoire illustration style.
-Entity details: ${entityDescription || entityType}
-${intent ? `Intent/Mood: ${intent}` : ''}
-${powerLevel ? `Power level: ${powerLevel}` : ''}
+    const sketchPrompt = `Transform this image into a haunting supernatural revelation - as if the veil between worlds has lifted to expose what lies beneath.
 
-IMPORTANT: Keep the EXACT shapes, forms and structures visible in the source image but transform them into a mystical sketch style.
-Make it look like it was drawn by a medieval occultist or spiritual seer - detailed, mysterious, with intricate linework and shadowing.
-Add subtle supernatural elements like faint auras, energy wisps, or dimensional distortions around what you see.
-Black and white with hints of ethereal blue or purple glow. High contrast, dramatic lighting.
-The sketch should clearly show what was detected in this specific region of the photo.`;
+DETECTED ENTITY: ${entityType}
+${entityDescription ? `MANIFESTATION: ${entityDescription}` : ''}
+${intent ? `SPIRITUAL INTENT: ${intent}` : ''}
+${powerLevel ? `POWER RESONANCE: ${powerLevel}` : ''}
+
+ART DIRECTION:
+- Style: Dark Renaissance occult illustration meets Victorian spirit photography
+- Medium: Aged parchment with ink, charcoal, and silver-point technique
+- Atmosphere: Chiaroscuro lighting with deep shadows bleeding into luminous highlights
+
+CRITICAL VISUAL ELEMENTS:
+1. PRESERVE the exact silhouettes, forms, and spatial arrangement from the source - this IS the entity
+2. Apply heavy crosshatching and stippling to create depth and texture
+3. Add crackling energy lines and etheric wisps emanating from the form
+4. Include subtle sacred geometry patterns (vesica piscis, flower of life fragments) in the background
+5. Create a halo or aura effect using radiating fine lines
+6. Add aged paper texture with foxing and torn edges
+7. Incorporate alchemical or runic symbols floating near the entity
+
+COLOR PALETTE:
+- Primarily sepia and burnt umber tones on aged cream parchment
+- Accent with spectral blue-white glow around ethereal elements
+- Deep shadow areas in rich charcoal black
+- Optional: faint violet or gold leaf highlights on energy manifestations
+
+MOOD: Reverent yet unsettling - like discovering a forbidden illustration in an ancient grimoire that reveals truths the eye cannot normally perceive.
+
+The final image should feel like authentic occult documentation - something a Victorian spiritualist or Renaissance alchemist would have drawn after witnessing a genuine supernatural phenomenon.`;
 
     logStep("Calling AI image generation with source image", { promptLength: sketchPrompt.length });
 
