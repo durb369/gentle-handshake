@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { ArrowLeft, MessageCircle, Hash, Crown, Loader2 } from "lucide-react";
+import { ArrowLeft, MessageCircle, Hash, Crown, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PsychicChat } from "@/components/PsychicChat";
 import { NumerologyChart } from "@/components/NumerologyChart";
+import { DailyTarot } from "@/components/DailyTarot";
 import { useSubscription } from "@/hooks/useSubscription";
 
 export default function BoostedFeatures() {
   const { isBoosted, loading, startCheckout } = useSubscription();
-  const [activeTab, setActiveTab] = useState("chat");
+  const [activeTab, setActiveTab] = useState("tarot");
 
   if (loading) {
     return (
@@ -115,7 +116,11 @@ export default function BoostedFeatures() {
           </h1>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="tarot" className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Daily Tarot
+              </TabsTrigger>
               <TabsTrigger value="chat" className="flex items-center gap-2">
                 <MessageCircle className="w-4 h-4" />
                 Psychic Chat
@@ -125,6 +130,10 @@ export default function BoostedFeatures() {
                 Numerology
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="tarot">
+              <DailyTarot />
+            </TabsContent>
 
             <TabsContent value="chat">
               <PsychicChat />
