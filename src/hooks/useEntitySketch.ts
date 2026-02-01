@@ -9,6 +9,54 @@ interface SketchResult {
   sketchId: string;
 }
 
+// Helper to crop image to bounding box and return as base64
+async function cropImageToBoundingBox(
+  imageUrl: string,
+  boundingBox: { xPercent: number; yPercent: number; widthPercent: number; heightPercent: number }
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      
+      if (!ctx) {
+        reject(new Error("Could not get canvas context"));
+        return;
+      }
+      
+      // Calculate pixel coordinates from percentages
+      const x = (boundingBox.xPercent / 100) * img.naturalWidth;
+      const y = (boundingBox.yPercent / 100) * img.naturalHeight;
+      const width = (boundingBox.widthPercent / 100) * img.naturalWidth;
+      const height = (boundingBox.heightPercent / 100) * img.naturalHeight;
+      
+      // Add some padding (10%) to capture context around the entity
+      const padding = 0.1;
+      const paddedX = Math.max(0, x - width * padding);
+      const paddedY = Math.max(0, y - height * padding);
+      const paddedWidth = Math.min(img.naturalWidth - paddedX, width * (1 + padding * 2));
+      const paddedHeight = Math.min(img.naturalHeight - paddedY, height * (1 + padding * 2));
+      
+      canvas.width = paddedWidth;
+      canvas.height = paddedHeight;
+      
+      ctx.drawImage(
+        img,
+        paddedX, paddedY, paddedWidth, paddedHeight,
+        0, 0, paddedWidth, paddedHeight
+      );
+      
+      resolve(canvas.toDataURL("image/jpeg", 0.9));
+    };
+    
+    img.onerror = () => reject(new Error("Failed to load image for cropping"));
+    img.src = imageUrl;
+  });
+}
+
 export function useEntitySketch() {
   const deviceId = useDeviceId();
   const [isGenerating, setIsGenerating] = useState(false);
@@ -17,7 +65,8 @@ export function useEntitySketch() {
   const generateSketch = useCallback(async (
     finding: Finding,
     findingIndex: number,
-    scanId?: string
+    scanId?: string,
+    sourceImageUrl?: string
   ): Promise<SketchResult | null> => {
     if (!deviceId) {
       toast.error("Device ID not available");
@@ -28,6 +77,17 @@ export function useEntitySketch() {
     setGeneratingIndex(findingIndex);
 
     try {
+      let croppedImageUrl: string | undefined;
+      
+      // If we have both source image and bounding box, crop the detected region
+      if (sourceImageUrl && finding.boundingBox) {
+        try {
+          croppedImageUrl = await cropImageToBoundingBox(sourceImageUrl, finding.boundingBox);
+        } catch (cropError) {
+          console.warn("Failed to crop image, proceeding without source:", cropError);
+        }
+      }
+
       const { data, error } = await supabase.functions.invoke("generate-entity-sketch", {
         body: {
           deviceId,
@@ -37,6 +97,8 @@ export function useEntitySketch() {
           powerLevel: finding.powerLevel,
           scanId,
           findingIndex,
+          sourceImageUrl: croppedImageUrl,
+          boundingBox: finding.boundingBox,
         },
       });
 
@@ -57,7 +119,7 @@ export function useEntitySketch() {
         throw new Error(data.error);
       }
 
-      toast.success("Entity sketch generated and saved to gallery!");
+      toast.success("Entity sketch generated from your scan!");
       
       return {
         sketchUrl: data.sketch_url,

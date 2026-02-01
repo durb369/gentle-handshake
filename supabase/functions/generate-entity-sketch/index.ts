@@ -19,28 +19,57 @@ serve(async (req) => {
   try {
     logStep("Function started");
     
-    const { deviceId, entityType, entityDescription, intent, powerLevel, scanId, findingIndex } = await req.json();
+    const { 
+      deviceId, 
+      entityType, 
+      entityDescription, 
+      intent, 
+      powerLevel, 
+      scanId, 
+      findingIndex,
+      sourceImageUrl,
+      boundingBox 
+    } = await req.json();
     
     if (!deviceId || !entityType) {
       throw new Error("Device ID and entity type are required");
     }
     
-    logStep("Generating sketch for", { entityType, intent, powerLevel });
+    logStep("Generating sketch for", { entityType, intent, powerLevel, hasSourceImage: !!sourceImageUrl, hasBoundingBox: !!boundingBox });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Create a detailed prompt for generating a hand-drawn sketch style image
-    const sketchPrompt = `Create a hand-drawn, mystical sketch illustration of a ${entityType}. 
-Style: Dark, atmospheric pencil/charcoal sketch with ethereal glow effects. Ancient manuscript or grimoire illustration style.
+    // Build the prompt for transforming the detected region into a mystical sketch
+    const sketchPrompt = `Transform this image region into a mystical, hand-drawn pencil/charcoal sketch illustration.
+This region shows a detected ${entityType}.
+Style: Dark, atmospheric sketch with ethereal glow effects. Ancient manuscript or grimoire illustration style.
 Entity details: ${entityDescription || entityType}
 ${intent ? `Intent/Mood: ${intent}` : ''}
 ${powerLevel ? `Power level: ${powerLevel}` : ''}
-The sketch should look like it was drawn by a medieval occultist or spiritual seer - detailed, mysterious, with intricate linework and shadowing. Include subtle supernatural elements like faint auras, energy wisps, or dimensional distortions around the entity. Black and white with hints of ethereal blue or purple glow. High contrast, dramatic lighting.`;
 
-    logStep("Calling AI image generation", { promptLength: sketchPrompt.length });
+IMPORTANT: Keep the EXACT shapes, forms and structures visible in the source image but transform them into a mystical sketch style.
+Make it look like it was drawn by a medieval occultist or spiritual seer - detailed, mysterious, with intricate linework and shadowing.
+Add subtle supernatural elements like faint auras, energy wisps, or dimensional distortions around what you see.
+Black and white with hints of ethereal blue or purple glow. High contrast, dramatic lighting.
+The sketch should clearly show what was detected in this specific region of the photo.`;
+
+    logStep("Calling AI image generation with source image", { promptLength: sketchPrompt.length });
+
+    // Build the message content - include source image if available
+    const messageContent: any[] = [
+      { type: "text", text: sketchPrompt }
+    ];
+
+    // If we have a source image, include it for image-to-image transformation
+    if (sourceImageUrl) {
+      messageContent.push({
+        type: "image_url",
+        image_url: { url: sourceImageUrl }
+      });
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -53,7 +82,7 @@ The sketch should look like it was drawn by a medieval occultist or spiritual se
         messages: [
           {
             role: "user",
-            content: sketchPrompt,
+            content: messageContent,
           },
         ],
         modalities: ["image", "text"],
