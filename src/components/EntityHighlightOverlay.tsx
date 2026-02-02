@@ -90,6 +90,21 @@ const typeEmojis: Record<string, string> = {
   anomaly: "🔮",
 };
 
+const glowColors: Record<string, string> = {
+  benevolent: "52, 211, 153",
+  malevolent: "239, 68, 68",
+  neutral: "148, 163, 184",
+  protective: "96, 165, 250",
+  parasitic: "168, 85, 247",
+  observing: "251, 191, 36",
+  communicating: "34, 211, 238",
+};
+
+const getGlowColor = (intent: string | undefined, opacity: number): string => {
+  const rgb = glowColors[intent || "neutral"] || glowColors.neutral;
+  return `rgba(${rgb}, ${opacity})`;
+};
+
 export function EntityHighlightOverlay({
   imageUrl,
   findings,
@@ -141,18 +156,13 @@ export function EntityHighlightOverlay({
           return (
             <motion.div
               key={index}
-              initial={{ opacity: 0, scale: 0.8 }}
+              initial={{ opacity: 0, scale: 0.9 }}
               animate={{ 
                 opacity: 1, 
                 scale: isHovered || isSelected ? 1.02 : 1,
               }}
-              transition={{ delay: index * 0.1, duration: 0.3 }}
-              className={cn(
-                "absolute rounded-lg cursor-pointer transition-all duration-300",
-                colors.border,
-                isHovered || isSelected ? "border-4" : "border-[3px]",
-                isHovered || isSelected ? colors.glow : "shadow-[0_0_15px_currentColor]"
-              )}
+              transition={{ delay: index * 0.1, duration: 0.4 }}
+              className="absolute cursor-pointer"
               style={{
                 left: `${box.xPercent}%`,
                 top: `${box.yPercent}%`,
@@ -163,29 +173,86 @@ export function EntityHighlightOverlay({
               onMouseLeave={() => setHoveredIndex(null)}
               onClick={() => handleZoom(index)}
             >
-              {/* Pulsing background overlay */}
+              {/* Outer glow layer - soft ambient */}
               <motion.div
-                className={cn("absolute inset-0 rounded-lg", colors.bg)}
+                className="absolute -inset-4 rounded-[40%] blur-xl pointer-events-none"
+                style={{
+                  background: `radial-gradient(ellipse at center, ${getGlowColor(finding.intent, 0.5)} 0%, ${getGlowColor(finding.intent, 0.2)} 40%, transparent 70%)`,
+                }}
                 animate={{
-                  opacity: isHovered || isSelected ? [0.4, 0.6, 0.4] : [0.2, 0.35, 0.2],
+                  opacity: isHovered || isSelected ? [0.8, 1, 0.8] : [0.5, 0.7, 0.5],
+                  scale: isHovered || isSelected ? [1, 1.1, 1] : [1, 1.05, 1],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+
+              {/* Middle glow layer - more intense */}
+              <motion.div
+                className="absolute -inset-2 rounded-[35%] blur-lg pointer-events-none"
+                style={{
+                  background: `radial-gradient(ellipse at center, ${getGlowColor(finding.intent, 0.7)} 0%, ${getGlowColor(finding.intent, 0.3)} 50%, transparent 80%)`,
+                }}
+                animate={{
+                  opacity: isHovered || isSelected ? [0.7, 0.9, 0.7] : [0.4, 0.6, 0.4],
                 }}
                 transition={{
                   duration: 1.5,
                   repeat: Infinity,
                   ease: "easeInOut",
+                  delay: 0.3,
+                }}
+              />
+
+              {/* Inner core highlight */}
+              <motion.div
+                className="absolute inset-0 rounded-[30%] blur-md pointer-events-none"
+                style={{
+                  background: `radial-gradient(ellipse at center, ${getGlowColor(finding.intent, 0.6)} 0%, transparent 60%)`,
+                }}
+                animate={{
+                  opacity: isHovered || isSelected ? [0.6, 0.8, 0.6] : [0.3, 0.5, 0.3],
+                }}
+                transition={{
+                  duration: 1.2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+
+              {/* Ethereal shimmer effect */}
+              <motion.div
+                className="absolute -inset-3 rounded-[40%] pointer-events-none overflow-hidden"
+                style={{
+                  background: `conic-gradient(from 0deg, transparent, ${getGlowColor(finding.intent, 0.4)}, transparent, ${getGlowColor(finding.intent, 0.2)}, transparent)`,
+                  filter: 'blur(8px)',
+                }}
+                animate={{
+                  rotate: [0, 360],
+                }}
+                transition={{
+                  duration: 8,
+                  repeat: Infinity,
+                  ease: "linear",
                 }}
               />
 
               {/* Entity Number Badge */}
               <motion.div
                 className={cn(
-                  "absolute -top-4 -left-4 w-8 h-8 rounded-full flex items-center justify-center",
-                  "bg-background/95 backdrop-blur-sm border-2 font-bold text-sm",
+                  "absolute -top-5 -left-5 w-8 h-8 rounded-full flex items-center justify-center z-10",
+                  "bg-background/95 backdrop-blur-sm border-2 font-bold text-sm shadow-lg",
                   colors.border,
                   colors.text
                 )}
                 animate={{
                   scale: isHovered || isSelected ? [1, 1.15, 1] : 1,
+                  boxShadow: isHovered || isSelected 
+                    ? [`0 0 15px ${getGlowColor(finding.intent, 0.8)}`, `0 0 25px ${getGlowColor(finding.intent, 1)}`, `0 0 15px ${getGlowColor(finding.intent, 0.8)}`]
+                    : `0 0 10px ${getGlowColor(finding.intent, 0.5)}`,
                 }}
                 transition={{
                   duration: 0.8,
@@ -198,8 +265,8 @@ export function EntityHighlightOverlay({
               {/* Entity Label */}
               <motion.div
                 className={cn(
-                  "absolute -top-8 left-6 px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap",
-                  "bg-background/95 backdrop-blur-sm border-2",
+                  "absolute -top-9 left-5 px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap z-10",
+                  "bg-background/95 backdrop-blur-sm border-2 shadow-lg",
                   colors.border,
                   colors.text
                 )}
@@ -218,54 +285,22 @@ export function EntityHighlightOverlay({
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.5 }}
-                    className="absolute inset-0 flex items-center justify-center"
+                    className="absolute inset-0 flex items-center justify-center z-10"
                   >
-                    <div className={cn(
-                      "p-3 rounded-full bg-background/90 backdrop-blur-sm border-2",
-                      colors.border
-                    )}>
+                    <div 
+                      className={cn(
+                        "p-3 rounded-full bg-background/90 backdrop-blur-sm border-2",
+                        colors.border
+                      )}
+                      style={{
+                        boxShadow: `0 0 20px ${getGlowColor(finding.intent, 0.8)}`,
+                      }}
+                    >
                       <ZoomIn className={cn("w-6 h-6", colors.text)} />
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {/* Animated scanning line */}
-              <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
-                <motion.div
-                  className={cn("absolute left-0 right-0 h-1 opacity-70", colors.bg)}
-                  style={{ background: `linear-gradient(90deg, transparent, currentColor, transparent)` }}
-                  animate={{
-                    top: ["0%", "100%", "0%"],
-                  }}
-                  transition={{
-                    duration: 2.5,
-                    repeat: Infinity,
-                    ease: "linear",
-                  }}
-                />
-              </div>
-
-              {/* Corner markers - more prominent */}
-              {[
-                "-top-1.5 -left-1.5 border-l-[3px] border-t-[3px] rounded-tl-md",
-                "-top-1.5 -right-1.5 border-r-[3px] border-t-[3px] rounded-tr-md",
-                "-bottom-1.5 -left-1.5 border-l-[3px] border-b-[3px] rounded-bl-md",
-                "-bottom-1.5 -right-1.5 border-r-[3px] border-b-[3px] rounded-br-md",
-              ].map((pos, i) => (
-                <motion.div
-                  key={i}
-                  className={cn("absolute w-5 h-5", pos, colors.border)}
-                  animate={{
-                    opacity: [0.7, 1, 0.7],
-                  }}
-                  transition={{
-                    duration: 1.2,
-                    repeat: Infinity,
-                    delay: i * 0.2,
-                  }}
-                />
-              ))}
             </motion.div>
           );
         })}
