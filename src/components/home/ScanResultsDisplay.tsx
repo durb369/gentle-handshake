@@ -1,6 +1,7 @@
-import { Eye } from "lucide-react";
+import { Eye, Radar } from "lucide-react";
 import { AnalysisResults } from "@/components/AnalysisResults";
 import { EntityHighlightOverlay } from "@/components/EntityHighlightOverlay";
+import { SpiritRadar } from "@/components/SpiritRadar";
 import type { AnalysisResult, Finding } from "@/hooks/useSpiritScan";
 
 interface ScanResultsDisplayProps {
@@ -30,6 +31,22 @@ export function ScanResultsDisplay({
 
   return (
     <div className="space-y-8">
+      {/* Spirit & Energy Radar */}
+      {results.findings.length > 0 && (
+        <div className="max-w-3xl mx-auto">
+          <h3 className="text-xl font-bold text-foreground flex items-center gap-2 mb-4">
+            <Radar className="w-6 h-6 text-primary" />
+            Spirit & Energy Radar
+          </h3>
+          <div className="p-6 rounded-2xl bg-card/50 border border-border backdrop-blur-sm">
+            <SpiritRadar 
+              findings={results.findings} 
+              overallEnergy={results.overallEnergy} 
+            />
+          </div>
+        </div>
+      )}
+
       {currentImage && hasEntityLocations && (
         <div className="max-w-3xl mx-auto">
           <h3 className="text-xl font-bold text-foreground flex items-center gap-2 mb-4">
