@@ -11,6 +11,9 @@ export interface ScanLimitStatus {
   loading: boolean;
 }
 
+// TEST MODE: Set to true to disable scan limits for testing
+const TEST_MODE = true;
+
 export function useScanLimit(isBoosted: boolean) {
   const deviceId = useDeviceId();
   const [status, setStatus] = useState<ScanLimitStatus>({
@@ -23,8 +26,8 @@ export function useScanLimit(isBoosted: boolean) {
   const checkScanCount = useCallback(async () => {
     if (!deviceId) return;
 
-    // Boosted users have unlimited scans
-    if (isBoosted) {
+    // TEST MODE: Bypass all limits
+    if (TEST_MODE || isBoosted) {
       setStatus({
         scanCount: 0,
         remainingScans: Infinity,
