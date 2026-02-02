@@ -146,75 +146,72 @@ export function EntityHighlightOverlay({
           className="w-full h-auto max-h-[600px] object-contain"
         />
 
-        {/* Entity Highlights */}
+        {/* Bright Entity Glow Highlights */}
         {findingsWithBoxes.map((finding, index) => {
           const box = finding.boundingBox!;
           const isHovered = hoveredIndex === index;
           const isSelected = selectedFinding === index;
-          const colors = intentColors[finding.intent || "neutral"] || intentColors.neutral;
+          const isActive = isHovered || isSelected;
 
           return (
             <motion.div
-              key={index}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ 
-                opacity: 1, 
-                scale: isHovered || isSelected ? 1.02 : 1,
-              }}
-              transition={{ delay: index * 0.1, duration: 0.4 }}
-              className="absolute cursor-pointer"
+              key={`glow-${index}`}
+              className="absolute pointer-events-none"
               style={{
                 left: `${box.xPercent}%`,
                 top: `${box.yPercent}%`,
                 width: `${box.widthPercent}%`,
                 height: `${box.heightPercent}%`,
               }}
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => handleZoom(index)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: index * 0.1 }}
             >
-              {/* Outer glow layer - soft ambient */}
+              {/* Outer bright glow - very visible */}
               <motion.div
-                className="absolute -inset-4 rounded-[40%] blur-xl pointer-events-none"
+                className="absolute -inset-8 rounded-full pointer-events-none"
                 style={{
-                  background: `radial-gradient(ellipse at center, ${getGlowColor(finding.intent, 0.5)} 0%, ${getGlowColor(finding.intent, 0.2)} 40%, transparent 70%)`,
+                  background: `radial-gradient(ellipse at center, ${getGlowColor(finding.intent, 0.9)} 0%, ${getGlowColor(finding.intent, 0.5)} 30%, ${getGlowColor(finding.intent, 0.2)} 60%, transparent 80%)`,
+                  filter: 'blur(12px)',
                 }}
                 animate={{
-                  opacity: isHovered || isSelected ? [0.8, 1, 0.8] : [0.5, 0.7, 0.5],
-                  scale: isHovered || isSelected ? [1, 1.1, 1] : [1, 1.05, 1],
+                  opacity: isActive ? [0.9, 1, 0.9] : [0.6, 0.8, 0.6],
+                  scale: isActive ? [1, 1.15, 1] : [1, 1.08, 1],
                 }}
                 transition={{
-                  duration: 2,
+                  duration: 2.5,
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
               />
 
-              {/* Middle glow layer - more intense */}
+              {/* Middle intense glow */}
               <motion.div
-                className="absolute -inset-2 rounded-[35%] blur-lg pointer-events-none"
+                className="absolute -inset-4 rounded-full pointer-events-none"
                 style={{
-                  background: `radial-gradient(ellipse at center, ${getGlowColor(finding.intent, 0.7)} 0%, ${getGlowColor(finding.intent, 0.3)} 50%, transparent 80%)`,
+                  background: `radial-gradient(ellipse at center, ${getGlowColor(finding.intent, 1)} 0%, ${getGlowColor(finding.intent, 0.6)} 40%, transparent 70%)`,
+                  filter: 'blur(8px)',
                 }}
                 animate={{
-                  opacity: isHovered || isSelected ? [0.7, 0.9, 0.7] : [0.4, 0.6, 0.4],
+                  opacity: isActive ? [0.8, 1, 0.8] : [0.5, 0.7, 0.5],
                 }}
                 transition={{
-                  duration: 1.5,
+                  duration: 1.8,
                   repeat: Infinity,
                   ease: "easeInOut",
-                  delay: 0.3,
+                  delay: 0.2,
                 }}
               />
 
-              {/* Inner core highlight */}
+              {/* Inner bright core */}
               <motion.div
-                className="absolute inset-0 rounded-[30%] blur-md pointer-events-none"
+                className="absolute -inset-1 rounded-full pointer-events-none"
                 style={{
-                  background: `radial-gradient(ellipse at center, ${getGlowColor(finding.intent, 0.6)} 0%, transparent 60%)`,
+                  background: `radial-gradient(ellipse at center, ${getGlowColor(finding.intent, 0.95)} 0%, ${getGlowColor(finding.intent, 0.4)} 50%, transparent 80%)`,
+                  filter: 'blur(4px)',
                 }}
                 animate={{
-                  opacity: isHovered || isSelected ? [0.6, 0.8, 0.6] : [0.3, 0.5, 0.3],
+                  opacity: isActive ? [0.7, 0.95, 0.7] : [0.4, 0.6, 0.4],
                 }}
                 transition={{
                   duration: 1.2,
@@ -223,81 +220,103 @@ export function EntityHighlightOverlay({
                 }}
               />
 
-              {/* Ethereal shimmer effect */}
+              {/* Pulsing ring effect */}
               <motion.div
-                className="absolute -inset-3 rounded-[40%] pointer-events-none overflow-hidden"
+                className="absolute -inset-2 rounded-full pointer-events-none"
                 style={{
-                  background: `conic-gradient(from 0deg, transparent, ${getGlowColor(finding.intent, 0.4)}, transparent, ${getGlowColor(finding.intent, 0.2)}, transparent)`,
-                  filter: 'blur(8px)',
+                  border: `2px solid ${getGlowColor(finding.intent, 0.8)}`,
+                  boxShadow: `0 0 15px ${getGlowColor(finding.intent, 0.6)}, inset 0 0 10px ${getGlowColor(finding.intent, 0.3)}`,
                 }}
                 animate={{
-                  rotate: [0, 360],
+                  scale: [1, 1.3, 1],
+                  opacity: [0.6, 0, 0.6],
                 }}
                 transition={{
-                  duration: 8,
+                  duration: 2,
                   repeat: Infinity,
-                  ease: "linear",
+                  ease: "easeOut",
                 }}
               />
+            </motion.div>
+          );
+        })}
 
-              {/* Entity Number Badge */}
+        {/* Numbered Marker Badges - Clickable */}
+        {findingsWithBoxes.map((finding, index) => {
+          const box = finding.boundingBox!;
+          const isHovered = hoveredIndex === index;
+          const isSelected = selectedFinding === index;
+          const isActive = isHovered || isSelected;
+          const colors = intentColors[finding.intent || "neutral"] || intentColors.neutral;
+
+          // Position the badge at center-top of the entity
+          const badgeX = box.xPercent + box.widthPercent / 2;
+          const badgeY = box.yPercent;
+
+          return (
+            <motion.div
+              key={`badge-${index}`}
+              className="absolute cursor-pointer z-20"
+              style={{
+                left: `${badgeX}%`,
+                top: `${badgeY}%`,
+                transform: 'translate(-50%, -120%)',
+              }}
+              initial={{ opacity: 0, scale: 0.5, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: index * 0.1 + 0.2 }}
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
+              onClick={() => handleZoom(index)}
+            >
+              {/* Number Badge */}
               <motion.div
                 className={cn(
-                  "absolute -top-5 -left-5 w-8 h-8 rounded-full flex items-center justify-center z-10",
-                  "bg-background/95 backdrop-blur-sm border-2 font-bold text-sm shadow-lg",
+                  "w-10 h-10 rounded-full flex items-center justify-center",
+                  "bg-background/95 backdrop-blur-sm border-3 font-bold text-lg shadow-xl",
                   colors.border,
                   colors.text
                 )}
                 animate={{
-                  scale: isHovered || isSelected ? [1, 1.15, 1] : 1,
-                  boxShadow: isHovered || isSelected 
-                    ? [`0 0 15px ${getGlowColor(finding.intent, 0.8)}`, `0 0 25px ${getGlowColor(finding.intent, 1)}`, `0 0 15px ${getGlowColor(finding.intent, 0.8)}`]
-                    : `0 0 10px ${getGlowColor(finding.intent, 0.5)}`,
+                  scale: isActive ? [1, 1.2, 1] : 1,
+                  boxShadow: isActive 
+                    ? [
+                        `0 0 20px ${getGlowColor(finding.intent, 0.9)}, 0 0 40px ${getGlowColor(finding.intent, 0.5)}`,
+                        `0 0 35px ${getGlowColor(finding.intent, 1)}, 0 0 60px ${getGlowColor(finding.intent, 0.7)}`,
+                        `0 0 20px ${getGlowColor(finding.intent, 0.9)}, 0 0 40px ${getGlowColor(finding.intent, 0.5)}`,
+                      ]
+                    : `0 0 15px ${getGlowColor(finding.intent, 0.6)}, 0 0 30px ${getGlowColor(finding.intent, 0.3)}`,
                 }}
                 transition={{
-                  duration: 0.8,
-                  repeat: isHovered || isSelected ? Infinity : 0,
+                  duration: 1,
+                  repeat: isActive ? Infinity : 0,
                 }}
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.95 }}
               >
                 {index + 1}
               </motion.div>
 
-              {/* Entity Label */}
-              <motion.div
-                className={cn(
-                  "absolute -top-9 left-5 px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap z-10",
-                  "bg-background/95 backdrop-blur-sm border-2 shadow-lg",
-                  colors.border,
-                  colors.text
-                )}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 + 0.2 }}
-              >
-                <span className="mr-1.5 text-base">{typeEmojis[finding.type] || "👁"}</span>
-                {finding.entityType || finding.type}
-              </motion.div>
-
-              {/* Zoom indicator on hover */}
+              {/* Entity type label on hover */}
               <AnimatePresence>
-                {isHovered && (
+                {isActive && (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.5 }}
-                    className="absolute inset-0 flex items-center justify-center z-10"
+                    initial={{ opacity: 0, y: -5, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -5, scale: 0.9 }}
+                    className={cn(
+                      "absolute left-1/2 -translate-x-1/2 -top-12 px-3 py-1.5 rounded-lg text-sm font-bold whitespace-nowrap",
+                      "bg-background/95 backdrop-blur-sm border-2 shadow-lg",
+                      colors.border,
+                      colors.text
+                    )}
+                    style={{
+                      boxShadow: `0 0 20px ${getGlowColor(finding.intent, 0.6)}`,
+                    }}
                   >
-                    <div 
-                      className={cn(
-                        "p-3 rounded-full bg-background/90 backdrop-blur-sm border-2",
-                        colors.border
-                      )}
-                      style={{
-                        boxShadow: `0 0 20px ${getGlowColor(finding.intent, 0.8)}`,
-                      }}
-                    >
-                      <ZoomIn className={cn("w-6 h-6", colors.text)} />
-                    </div>
+                    <span className="mr-1.5 text-base">{typeEmojis[finding.type] || "👁"}</span>
+                    {finding.entityType || finding.type}
+                    <span className="ml-2 text-xs opacity-70">tap to zoom</span>
                   </motion.div>
                 )}
               </AnimatePresence>
