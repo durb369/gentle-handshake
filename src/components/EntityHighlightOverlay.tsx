@@ -473,51 +473,113 @@ export function EntityHighlightOverlay({
                       </div>
                     </div>
 
-                    {/* Zoomed Image */}
-                    <div className="relative overflow-hidden">
+                    {/* Enhanced HD Zoomed Image */}
+                    <div className="relative overflow-hidden bg-black">
                       <div 
-                        className="relative w-full"
+                        className="relative w-full flex items-center justify-center"
                         style={{
-                          // Use object-position to show the cropped area
-                          minHeight: '300px',
+                          minHeight: '400px',
+                          maxHeight: '60vh',
                         }}
                       >
-                        <img
-                          src={imageUrl}
-                          alt="Zoomed entity view"
-                          className="w-full h-auto"
+                        {/* Dynamic cropped and enhanced image */}
+                        <div
+                          className="relative overflow-hidden rounded-lg"
                           style={{
-                            clipPath: `inset(${cropY}% ${100 - cropX - cropWidth}% ${100 - cropY - cropHeight}% ${cropX}%)`,
-                            transform: `scale(${100 / Math.max(cropWidth, cropHeight)})`,
-                            transformOrigin: `${cropX + cropWidth/2}% ${cropY + cropHeight/2}%`,
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                           }}
-                        />
+                        >
+                          <img
+                            src={imageUrl}
+                            alt="Zoomed entity view - Enhanced HD"
+                            style={{
+                              // Crop to just the entity area with some padding
+                              objectFit: 'none',
+                              objectPosition: `${box.xPercent + box.widthPercent/2}% ${box.yPercent + box.heightPercent/2}%`,
+                              // Scale up significantly for HD clarity
+                              transform: 'scale(2.5)',
+                              transformOrigin: `${box.xPercent + box.widthPercent/2}% ${box.yPercent + box.heightPercent/2}%`,
+                              // HD Enhancement filters for clarity
+                              filter: 'contrast(1.15) saturate(1.2) brightness(1.05)',
+                              // Crisp rendering
+                              imageRendering: 'crisp-edges',
+                            }}
+                            className="w-full h-auto"
+                          />
+                          
+                          {/* Sharpening overlay for extra clarity */}
+                          <div 
+                            className="absolute inset-0 pointer-events-none mix-blend-overlay"
+                            style={{
+                              background: 'radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.3) 100%)',
+                            }}
+                          />
+                        </div>
                         
-                        {/* Highlight overlay on zoomed view */}
+                        {/* Bright glowing highlight ring around the entity */}
                         <motion.div
-                          className={cn(
-                            "absolute pointer-events-none border-4 rounded-lg",
-                            colors.border,
-                            colors.glow
-                          )}
+                          className="absolute pointer-events-none"
                           style={{
-                            left: `${((box.xPercent - cropX) / cropWidth) * 100}%`,
-                            top: `${((box.yPercent - cropY) / cropHeight) * 100}%`,
-                            width: `${(box.widthPercent / cropWidth) * 100}%`,
-                            height: `${(box.heightPercent / cropHeight) * 100}%`,
+                            left: '50%',
+                            top: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: '60%',
+                            height: '60%',
+                            borderRadius: '50%',
+                            border: `4px solid ${getGlowColor(finding.intent, 0.9)}`,
+                            boxShadow: `
+                              0 0 30px ${getGlowColor(finding.intent, 0.8)},
+                              0 0 60px ${getGlowColor(finding.intent, 0.5)},
+                              0 0 100px ${getGlowColor(finding.intent, 0.3)},
+                              inset 0 0 40px ${getGlowColor(finding.intent, 0.4)}
+                            `,
                           }}
                           animate={{
-                            boxShadow: [
-                              `0 0 20px currentColor, inset 0 0 10px currentColor`,
-                              `0 0 40px currentColor, inset 0 0 20px currentColor`,
-                              `0 0 20px currentColor, inset 0 0 10px currentColor`,
-                            ],
+                            scale: [1, 1.05, 1],
+                            opacity: [0.8, 1, 0.8],
                           }}
                           transition={{
-                            duration: 1.5,
+                            duration: 2,
                             repeat: Infinity,
+                            ease: "easeInOut",
                           }}
                         />
+
+                        {/* Pulsing energy waves */}
+                        {[0, 1, 2].map((i) => (
+                          <motion.div
+                            key={i}
+                            className="absolute pointer-events-none"
+                            style={{
+                              left: '50%',
+                              top: '50%',
+                              transform: 'translate(-50%, -50%)',
+                              width: '70%',
+                              height: '70%',
+                              borderRadius: '50%',
+                              border: `2px solid ${getGlowColor(finding.intent, 0.5)}`,
+                            }}
+                            animate={{
+                              scale: [1, 2, 2.5],
+                              opacity: [0.6, 0.2, 0],
+                            }}
+                            transition={{
+                              duration: 2.5,
+                              repeat: Infinity,
+                              delay: i * 0.8,
+                              ease: "easeOut",
+                            }}
+                          />
+                        ))}
+
+                        {/* HD Quality indicator */}
+                        <div className="absolute top-4 left-4 px-3 py-1.5 rounded-lg bg-black/70 backdrop-blur-sm border border-white/20">
+                          <span className="text-xs font-bold text-white/90 tracking-wide">✨ ENHANCED HD VIEW</span>
+                        </div>
                       </div>
                     </div>
 
