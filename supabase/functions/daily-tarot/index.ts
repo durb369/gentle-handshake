@@ -1,8 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateDeviceId, createErrorResponse } from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const logStep = (step: string, details?: Record<string, unknown>) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[DAILY-TAROT] ${step}${detailsStr}`);
 };
 
 const majorArcana = [
@@ -104,11 +110,18 @@ serve(async (req) => {
   }
 
   try {
+    logStep("Function started");
+    
     const { deviceId } = await req.json();
 
-    if (!deviceId) {
-      throw new Error("Device ID required");
+    // Validate device ID
+    const deviceValidation = validateDeviceId(deviceId);
+    if (!deviceValidation.valid) {
+      logStep("Device validation failed", { error: deviceValidation.error });
+      return createErrorResponse(deviceValidation.error!, 401, corsHeaders);
     }
+
+    logStep("Device validated", { deviceId: deviceId.substring(0, 20) + '...' });
 
     // Generate a seed based on deviceId and today's date for consistent daily pulls
     const today = new Date().toISOString().split('T')[0];
@@ -133,7 +146,7 @@ serve(async (req) => {
     const prompt = `You are Mystic Elara, a warm and gifted tarot reader. You've just drawn ${card.name}${isReversed ? " (Reversed)" : ""} for someone seeking daily guidance.
 
 The card's core energies: ${card.keywords.join(", ")}
-${card.arcana === "major" ? "This is a Major Arcana card, signifying powerful life themes and spiritual lessons." : `This is from the ${(card as any).suit} suit, connected to ${(card as any).suit === "Wands" ? "fire, passion, and action" : (card as any).suit === "Cups" ? "water, emotions, and relationships" : (card as any).suit === "Swords" ? "air, intellect, and truth" : "earth, material matters, and stability"}.`}
+${card.arcana === "major" ? "This is a Major Arcana card, signifying powerful life themes and spiritual lessons." : `This is from the ${(card as { suit?: string }).suit} suit, connected to ${(card as { suit?: string }).suit === "Wands" ? "fire, passion, and action" : (card as { suit?: string }).suit === "Cups" ? "water, emotions, and relationships" : (card as { suit?: string }).suit === "Swords" ? "air, intellect, and truth" : "earth, material matters, and stability"}.`}
 
 Write a personal, warm daily reading (about 150-200 words) that:
 1. Greets them warmly and reveals the card with excitement or appropriate emotion
@@ -160,10 +173,10 @@ Speak like a caring friend sharing mystical wisdom, not like reading from a text
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return createErrorResponse("Rate limit exceeded. Please try again in a moment.", 429, corsHeaders);
+      }
+      if (response.status === 402) {
+        return createErrorResponse("AI credits exhausted. Please add credits to continue.", 402, corsHeaders);
       }
       throw new Error(`AI gateway error: ${response.status}`);
     }
@@ -171,13 +184,15 @@ Speak like a caring friend sharing mystical wisdom, not like reading from a text
     const data = await response.json();
     const reading = data.choices?.[0]?.message?.content || "The cards are quiet today. Please try again.";
 
+    logStep("Reading generated");
+
     return new Response(
       JSON.stringify({
         card: {
           name: card.name,
           number: card.number,
           arcana: card.arcana,
-          suit: (card as any).suit || null,
+          suit: (card as { suit?: string }).suit || null,
           keywords: card.keywords,
           isReversed,
         },
@@ -187,7 +202,7 @@ Speak like a caring friend sharing mystical wisdom, not like reading from a text
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Tarot error:", error);
+    logStep("ERROR", { message: error instanceof Error ? error.message : String(error) });
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Failed to draw card" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

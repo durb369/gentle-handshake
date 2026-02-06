@@ -1,11 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateDeviceId, validateMessages, createErrorResponse } from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[PSYCHIC-CHAT] ${step}${detailsStr}`);
 };
@@ -49,15 +50,22 @@ serve(async (req) => {
 
     const { messages, deviceId } = await req.json();
 
-    if (!deviceId) {
-      throw new Error("Device ID required");
+    // Validate device ID
+    const deviceValidation = validateDeviceId(deviceId);
+    if (!deviceValidation.valid) {
+      logStep("Device validation failed", { error: deviceValidation.error });
+      return createErrorResponse(deviceValidation.error!, 401, corsHeaders);
     }
 
-    if (!messages || !Array.isArray(messages)) {
-      throw new Error("Messages array required");
+    // Validate and sanitize messages
+    const messagesValidation = validateMessages(messages);
+    if (!messagesValidation.valid) {
+      logStep("Messages validation failed", { error: messagesValidation.error });
+      return createErrorResponse(messagesValidation.error!, 400, corsHeaders);
     }
 
-    logStep("Processing chat", { messageCount: messages.length });
+    const sanitizedMessages = messagesValidation.sanitized!;
+    logStep("Validation passed", { messageCount: sanitizedMessages.length });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -74,7 +82,7 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          ...messages.map((m: { role: string; content: string }) => ({
+          ...sanitizedMessages.map((m) => ({
             role: m.role,
             content: m.content,
           })),
@@ -85,16 +93,10 @@ serve(async (req) => {
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return createErrorResponse("Rate limit exceeded. Please try again in a moment.", 429, corsHeaders);
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return createErrorResponse("AI credits exhausted. Please add credits to continue.", 402, corsHeaders);
       }
       const errorText = await response.text();
       logStep("AI gateway error", { status: response.status, error: errorText });
