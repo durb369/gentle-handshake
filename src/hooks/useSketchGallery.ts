@@ -41,18 +41,17 @@ export function useSketchGallery() {
     if (!deviceId) return;
 
     try {
-      const { data, error } = await supabase
-        .from("entity_sketches")
-        .select("*")
-        .eq("device_id", deviceId)
-        .order("created_at", { ascending: false });
+      // Use the secure get-user-data edge function instead of direct DB query
+      const { data, error } = await supabase.functions.invoke("get-user-data", {
+        body: { deviceId, type: "sketches", limit: 100 },
+      });
 
       if (error) {
         console.error("Error fetching sketches:", error);
         return;
       }
 
-      const typedData = data as EntitySketch[];
+      const typedData = (data?.data || []) as EntitySketch[];
       setSketches(typedData);
       setCachedSketches(typedData);
     } catch (error) {

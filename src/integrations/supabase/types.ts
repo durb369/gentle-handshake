@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      device_rate_limits: {
+        Row: {
+          action: string
+          count: number
+          created_at: string
+          device_id: string
+          id: string
+          window_start: string
+        }
+        Insert: {
+          action: string
+          count?: number
+          created_at?: string
+          device_id: string
+          id?: string
+          window_start: string
+        }
+        Update: {
+          action?: string
+          count?: number
+          created_at?: string
+          device_id?: string
+          id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       entity_findings: {
         Row: {
           confidence: string | null
@@ -85,6 +112,7 @@ export type Database = {
           finding_index: number
           id: string
           scan_id: string | null
+          sketch_path: string | null
           sketch_url: string
         }
         Insert: {
@@ -95,6 +123,7 @@ export type Database = {
           finding_index: number
           id?: string
           scan_id?: string | null
+          sketch_path?: string | null
           sketch_url: string
         }
         Update: {
@@ -105,6 +134,7 @@ export type Database = {
           finding_index?: number
           id?: string
           scan_id?: string | null
+          sketch_path?: string | null
           sketch_url?: string
         }
         Relationships: [
@@ -124,6 +154,7 @@ export type Database = {
           dimensional_thinning: string | null
           dominant_energy: string | null
           id: string
+          image_path: string | null
           image_url: string
           interpretation: string | null
           overall_energy: string | null
@@ -139,6 +170,7 @@ export type Database = {
           dimensional_thinning?: string | null
           dominant_energy?: string | null
           id?: string
+          image_path?: string | null
           image_url: string
           interpretation?: string | null
           overall_energy?: string | null
@@ -154,6 +186,7 @@ export type Database = {
           dimensional_thinning?: string | null
           dominant_energy?: string | null
           id?: string
+          image_path?: string | null
           image_url?: string
           interpretation?: string | null
           overall_energy?: string | null
@@ -206,7 +239,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      rate_limit_allow: {
+        Args: {
+          _action: string
+          _device_id: string
+          _max_count: number
+          _window_seconds: number
+        }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          reset_at: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

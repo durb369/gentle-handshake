@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { validateDeviceId, createErrorResponse } from "../_shared/validation.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,8 +30,15 @@ serve(async (req) => {
       logStep("Device validation failed", { error: deviceValidation.error });
       return createErrorResponse(deviceValidation.error!, 401, corsHeaders);
     }
+
+    // Check rate limit
+    const rateLimit = await checkRateLimit(deviceId, "check-subscription");
+    if (!rateLimit.allowed) {
+      logStep("Rate limit exceeded", { deviceId: deviceId.substring(0, 20), remaining: rateLimit.remaining });
+      return rateLimitResponse(rateLimit, corsHeaders);
+    }
     
-    logStep("Checking subscription for device", { deviceId: deviceId.substring(0, 20) + '...' });
+    logStep("Checking subscription for device", { deviceId: deviceId.substring(0, 20) + '...', remaining: rateLimit.remaining });
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");

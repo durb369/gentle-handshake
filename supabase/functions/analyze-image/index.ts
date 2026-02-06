@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateDeviceId, validateImageBase64, createErrorResponse } from "../_shared/validation.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +30,13 @@ serve(async (req) => {
       return createErrorResponse(deviceValidation.error!, 401, corsHeaders);
     }
 
+    // Check rate limit
+    const rateLimit = await checkRateLimit(deviceId, "analyze-image");
+    if (!rateLimit.allowed) {
+      logStep("Rate limit exceeded", { deviceId: deviceId.substring(0, 20), remaining: rateLimit.remaining });
+      return rateLimitResponse(rateLimit, corsHeaders);
+    }
+
     // Validate image data
     const imageValidation = validateImageBase64(imageBase64);
     if (!imageValidation.valid) {
@@ -36,7 +44,7 @@ serve(async (req) => {
       return createErrorResponse(imageValidation.error!, 400, corsHeaders);
     }
 
-    logStep("Validation passed", { deviceId: deviceId.substring(0, 20) + '...' });
+    logStep("Validation passed", { deviceId: deviceId.substring(0, 20) + '...', remaining: rateLimit.remaining });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
