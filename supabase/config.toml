@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.generate-entity-sketch]
 verify_jwt = false
+
+[functions.daily-tarot]
+verify_jwt = false
+
+[functions.numerology-reading]
+verify_jwt = false
+
+[functions.psychic-chat]
+verify_jwt = false
