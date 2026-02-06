@@ -1,12 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { validateDeviceId, validateEntitySketchRequest, createErrorResponse } from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[GENERATE-ENTITY-SKETCH] ${step}${detailsStr}`);
 };
@@ -19,6 +20,7 @@ serve(async (req) => {
   try {
     logStep("Function started");
     
+    const body = await req.json();
     const { 
       deviceId, 
       entityType, 
@@ -29,13 +31,33 @@ serve(async (req) => {
       findingIndex,
       sourceImageUrl,
       boundingBox 
-    } = await req.json();
+    } = body;
     
-    if (!deviceId || !entityType) {
-      throw new Error("Device ID and entity type are required");
+    // Validate device ID
+    const deviceValidation = validateDeviceId(deviceId);
+    if (!deviceValidation.valid) {
+      logStep("Device validation failed", { error: deviceValidation.error });
+      return createErrorResponse(deviceValidation.error!, 401, corsHeaders);
     }
-    
-    logStep("Generating sketch for", { entityType, intent, powerLevel, hasSourceImage: !!sourceImageUrl, hasBoundingBox: !!boundingBox });
+
+    // Validate entity sketch request
+    const entityValidation = validateEntitySketchRequest({
+      entityType,
+      entityDescription,
+      intent,
+      powerLevel,
+    });
+    if (!entityValidation.valid) {
+      logStep("Entity validation failed", { error: entityValidation.error });
+      return createErrorResponse(entityValidation.error!, 400, corsHeaders);
+    }
+
+    const sanitized = entityValidation.sanitized!;
+    logStep("Validation passed", { 
+      entityType: sanitized.entityType, 
+      hasSourceImage: !!sourceImageUrl, 
+      hasBoundingBox: !!boundingBox 
+    });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -45,10 +67,10 @@ serve(async (req) => {
     // Build the prompt for transforming the detected region into a mystical sketch
     const sketchPrompt = `Transform this image into a haunting supernatural revelation - as if the veil between worlds has lifted to expose what lies beneath.
 
-DETECTED ENTITY: ${entityType}
-${entityDescription ? `MANIFESTATION: ${entityDescription}` : ''}
-${intent ? `SPIRITUAL INTENT: ${intent}` : ''}
-${powerLevel ? `POWER RESONANCE: ${powerLevel}` : ''}
+DETECTED ENTITY: ${sanitized.entityType}
+${sanitized.entityDescription ? `MANIFESTATION: ${sanitized.entityDescription}` : ''}
+${sanitized.intent ? `SPIRITUAL INTENT: ${sanitized.intent}` : ''}
+${sanitized.powerLevel ? `POWER RESONANCE: ${sanitized.powerLevel}` : ''}
 
 ART DIRECTION:
 - Style: Dark Renaissance occult illustration meets Victorian spirit photography
@@ -74,15 +96,15 @@ MOOD: Reverent yet unsettling - like discovering a forbidden illustration in an 
 
 The final image should feel like authentic occult documentation - something a Victorian spiritualist or Renaissance alchemist would have drawn after witnessing a genuine supernatural phenomenon.`;
 
-    logStep("Calling AI image generation with source image", { promptLength: sketchPrompt.length });
+    logStep("Calling AI image generation");
 
     // Build the message content - include source image if available
-    const messageContent: any[] = [
+    const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
       { type: "text", text: sketchPrompt }
     ];
 
     // If we have a source image, include it for image-to-image transformation
-    if (sourceImageUrl) {
+    if (sourceImageUrl && typeof sourceImageUrl === 'string' && sourceImageUrl.startsWith('data:image/')) {
       messageContent.push({
         type: "image_url",
         image_url: { url: sourceImageUrl }
@@ -109,14 +131,10 @@ The final image should feel like authentic occult documentation - something a Vi
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
+        return createErrorResponse("Rate limit exceeded. Please try again in a moment.", 429, corsHeaders);
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI usage limit reached. Please add credits to continue." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" }
-        });
+        return createErrorResponse("AI usage limit reached. Please add credits to continue.", 402, corsHeaders);
       }
       const errorText = await response.text();
       logStep("AI gateway error", { status: response.status, error: errorText });
@@ -132,7 +150,7 @@ The final image should feel like authentic occult documentation - something a Vi
 
     logStep("Image generated successfully");
 
-    // Upload the base64 image to Supabase storage
+    // Upload the base64 image to Supabase storage using service role
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -149,7 +167,7 @@ The final image should feel like authentic occult documentation - something a Vi
     const byteArray = new Uint8Array(byteNumbers);
     const blob = new Blob([byteArray], { type: "image/png" });
 
-    const fileName = `${deviceId}/${Date.now()}-${entityType.replace(/\s+/g, '-')}.png`;
+    const fileName = `${deviceId}/${Date.now()}-${sanitized.entityType.replace(/\s+/g, '-')}.png`;
     
     const { error: uploadError } = await supabaseClient.storage
       .from("entity-sketches")
@@ -167,15 +185,15 @@ The final image should feel like authentic occult documentation - something a Vi
     const publicUrl = urlData.publicUrl;
     logStep("Sketch uploaded", { publicUrl });
 
-    // Save to database
+    // Save to database using service role
     const { data: sketchRecord, error: dbError } = await supabaseClient
       .from("entity_sketches")
       .insert({
         device_id: deviceId,
         scan_id: scanId || null,
         finding_index: findingIndex ?? 0,
-        entity_type: entityType,
-        entity_description: entityDescription,
+        entity_type: sanitized.entityType,
+        entity_description: sanitized.entityDescription,
         sketch_url: publicUrl,
       })
       .select()

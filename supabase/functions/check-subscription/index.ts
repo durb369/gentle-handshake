@@ -1,15 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { validateDeviceId, createErrorResponse } from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const BOOSTED_PRODUCT_ID = "prod_TtqiwcHxb5HXh3";
-
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
 };
@@ -24,11 +23,14 @@ serve(async (req) => {
     
     const { deviceId } = await req.json();
     
-    if (!deviceId) {
-      throw new Error("Device ID is required");
+    // Validate device ID
+    const deviceValidation = validateDeviceId(deviceId);
+    if (!deviceValidation.valid) {
+      logStep("Device validation failed", { error: deviceValidation.error });
+      return createErrorResponse(deviceValidation.error!, 401, corsHeaders);
     }
     
-    logStep("Checking subscription for device", { deviceId });
+    logStep("Checking subscription for device", { deviceId: deviceId.substring(0, 20) + '...' });
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
@@ -77,7 +79,7 @@ serve(async (req) => {
       
       logStep("Found active Stripe subscription", { subscriptionId: subscription.id, endDate: subscriptionEnd });
 
-      // Update local database
+      // Update local database using service role
       await supabaseClient
         .from("user_subscriptions")
         .upsert({
@@ -101,7 +103,7 @@ serve(async (req) => {
 
     logStep("No active subscription found");
     
-    // Update local database to reflect no subscription
+    // Update local database to reflect no subscription using service role
     if (localSub) {
       await supabaseClient
         .from("user_subscriptions")

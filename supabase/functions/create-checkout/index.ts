@@ -1,15 +1,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { validateDeviceId, validateEmail, createErrorResponse } from "../_shared/validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 const BOOSTED_PRICE_ID = "price_1Sw30mPBmofuj4yB0BnawNLh";
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
@@ -24,11 +24,21 @@ serve(async (req) => {
     
     const { deviceId, email } = await req.json();
     
-    if (!deviceId) {
-      throw new Error("Device ID is required");
+    // Validate device ID
+    const deviceValidation = validateDeviceId(deviceId);
+    if (!deviceValidation.valid) {
+      logStep("Device validation failed", { error: deviceValidation.error });
+      return createErrorResponse(deviceValidation.error!, 401, corsHeaders);
+    }
+
+    // Validate email if provided
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      logStep("Email validation failed", { error: emailValidation.error });
+      return createErrorResponse(emailValidation.error!, 400, corsHeaders);
     }
     
-    logStep("Request data", { deviceId, email });
+    logStep("Validation passed", { deviceId: deviceId.substring(0, 20) + '...', hasEmail: !!email });
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
