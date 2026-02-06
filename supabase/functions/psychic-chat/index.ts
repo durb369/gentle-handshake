@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateDeviceId, validateMessages, createErrorResponse } from "../_shared/validation.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,6 +58,13 @@ serve(async (req) => {
       return createErrorResponse(deviceValidation.error!, 401, corsHeaders);
     }
 
+    // Check rate limit
+    const rateLimit = await checkRateLimit(deviceId, "psychic-chat");
+    if (!rateLimit.allowed) {
+      logStep("Rate limit exceeded", { deviceId: deviceId.substring(0, 20), remaining: rateLimit.remaining });
+      return rateLimitResponse(rateLimit, corsHeaders);
+    }
+
     // Validate and sanitize messages
     const messagesValidation = validateMessages(messages);
     if (!messagesValidation.valid) {
@@ -65,7 +73,7 @@ serve(async (req) => {
     }
 
     const sanitizedMessages = messagesValidation.sanitized!;
-    logStep("Validation passed", { messageCount: sanitizedMessages.length });
+    logStep("Validation passed", { messageCount: sanitizedMessages.length, remaining: rateLimit.remaining });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

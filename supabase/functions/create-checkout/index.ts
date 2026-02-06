@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { validateDeviceId, validateEmail, createErrorResponse } from "../_shared/validation.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +32,13 @@ serve(async (req) => {
       return createErrorResponse(deviceValidation.error!, 401, corsHeaders);
     }
 
+    // Check rate limit (stricter for payment-related endpoints)
+    const rateLimit = await checkRateLimit(deviceId, "create-checkout");
+    if (!rateLimit.allowed) {
+      logStep("Rate limit exceeded", { deviceId: deviceId.substring(0, 20), remaining: rateLimit.remaining });
+      return rateLimitResponse(rateLimit, corsHeaders);
+    }
+
     // Validate email if provided
     const emailValidation = validateEmail(email);
     if (!emailValidation.valid) {
@@ -38,7 +46,7 @@ serve(async (req) => {
       return createErrorResponse(emailValidation.error!, 400, corsHeaders);
     }
     
-    logStep("Validation passed", { deviceId: deviceId.substring(0, 20) + '...', hasEmail: !!email });
+    logStep("Validation passed", { deviceId: deviceId.substring(0, 20) + '...', hasEmail: !!email, remaining: rateLimit.remaining });
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");

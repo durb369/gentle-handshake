@@ -78,21 +78,18 @@ const SpiritJournal = () => {
 
   const fetchScans = async () => {
     try {
-      const { data: scansData, error: scansError } = await supabase
-        .from("spirit_scans")
-        .select(`
-          *,
-          entity_findings (*)
-        `)
-        .eq("device_id", deviceId)
-        .order("created_at", { ascending: false });
+      // Use the secure get-user-data edge function instead of direct DB query
+      const { data, error } = await supabase.functions.invoke("get-user-data", {
+        body: { deviceId, type: "scans", limit: 100 },
+      });
 
-      if (scansError) throw scansError;
+      if (error) throw error;
 
-      setScans(scansData || []);
+      const scansData = (data?.data || []) as SpiritScan[];
+      setScans(scansData);
 
       // Calculate entity statistics
-      const allFindings = scansData?.flatMap(s => s.entity_findings) || [];
+      const allFindings = scansData.flatMap(s => s.entity_findings || []);
       const typeMap = new Map<string, { count: number; lastSeen: string; powerLevels: string[] }>();
 
       allFindings.forEach((finding: EntityFinding) => {
@@ -120,17 +117,17 @@ const SpiritJournal = () => {
   };
 
   const filteredScans = scans.filter((scan) => {
-    if (filter === "entities") return scan.entity_findings.length > 0;
+    if (filter === "entities") return (scan.entity_findings?.length || 0) > 0;
     if (filter === "warnings") return scan.protection_needed;
     return true;
   });
 
-  const totalEntities = scans.reduce((acc, s) => acc + s.entity_findings.length, 0);
+  const totalEntities = scans.reduce((acc, s) => acc + (s.entity_findings?.length || 0), 0);
   const warningScans = scans.filter(s => s.protection_needed).length;
   const recurringEntities = entityStats.filter(s => s.count > 1);
 
   const formatFindingsForOverlay = (findings: EntityFinding[]) => {
-    return findings.map(f => ({
+    return (findings || []).map(f => ({
       description: f.description,
       location: f.location,
       type: f.entity_type?.split(" ")[0]?.toLowerCase() || "entity",
@@ -317,7 +314,7 @@ const SpiritJournal = () => {
 
                       {/* Entity chips */}
                       <div className="flex flex-wrap gap-1">
-                        {scan.entity_findings.slice(0, 3).map((finding: EntityFinding, i: number) => (
+                        {(scan.entity_findings || []).slice(0, 3).map((finding: EntityFinding, i: number) => (
                           <span
                             key={i}
                             className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20"
@@ -325,12 +322,12 @@ const SpiritJournal = () => {
                             {typeEmojis[finding.entity_type?.split(" ")[0]?.toLowerCase()] || "👁"} {finding.entity_type}
                           </span>
                         ))}
-                        {scan.entity_findings.length > 3 && (
+                        {(scan.entity_findings?.length || 0) > 3 && (
                           <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
                             +{scan.entity_findings.length - 3} more
                           </span>
                         )}
-                        {scan.entity_findings.length === 0 && (
+                        {(scan.entity_findings?.length || 0) === 0 && (
                           <span className="text-xs text-muted-foreground">No entities detected</span>
                         )}
                       </div>

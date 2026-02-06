@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.psychic-chat]
 verify_jwt = false
+
+[functions.get-signed-url]
+verify_jwt = false
+
+[functions.get-user-data]
+verify_jwt = false

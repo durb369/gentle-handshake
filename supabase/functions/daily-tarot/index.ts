@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateDeviceId, createErrorResponse } from "../_shared/validation.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -121,7 +122,14 @@ serve(async (req) => {
       return createErrorResponse(deviceValidation.error!, 401, corsHeaders);
     }
 
-    logStep("Device validated", { deviceId: deviceId.substring(0, 20) + '...' });
+    // Check rate limit
+    const rateLimit = await checkRateLimit(deviceId, "daily-tarot");
+    if (!rateLimit.allowed) {
+      logStep("Rate limit exceeded", { deviceId: deviceId.substring(0, 20), remaining: rateLimit.remaining });
+      return rateLimitResponse(rateLimit, corsHeaders);
+    }
+
+    logStep("Device validated", { deviceId: deviceId.substring(0, 20) + '...', remaining: rateLimit.remaining });
 
     // Generate a seed based on deviceId and today's date for consistent daily pulls
     const today = new Date().toISOString().split('T')[0];

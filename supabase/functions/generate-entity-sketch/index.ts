@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { validateDeviceId, validateEntitySketchRequest, createErrorResponse } from "../_shared/validation.ts";
+import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,6 +41,13 @@ serve(async (req) => {
       return createErrorResponse(deviceValidation.error!, 401, corsHeaders);
     }
 
+    // Check rate limit
+    const rateLimit = await checkRateLimit(deviceId, "generate-entity-sketch");
+    if (!rateLimit.allowed) {
+      logStep("Rate limit exceeded", { deviceId: deviceId.substring(0, 20), remaining: rateLimit.remaining });
+      return rateLimitResponse(rateLimit, corsHeaders);
+    }
+
     // Validate entity sketch request
     const entityValidation = validateEntitySketchRequest({
       entityType,
@@ -56,7 +64,8 @@ serve(async (req) => {
     logStep("Validation passed", { 
       entityType: sanitized.entityType, 
       hasSourceImage: !!sourceImageUrl, 
-      hasBoundingBox: !!boundingBox 
+      hasBoundingBox: !!boundingBox,
+      remaining: rateLimit.remaining
     });
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -185,7 +194,7 @@ The final image should feel like authentic occult documentation - something a Vi
     const publicUrl = urlData.publicUrl;
     logStep("Sketch uploaded", { publicUrl });
 
-    // Save to database using service role
+    // Save to database using service role (store path for signed URLs, keep old URL for backward compat)
     const { data: sketchRecord, error: dbError } = await supabaseClient
       .from("entity_sketches")
       .insert({
@@ -195,6 +204,7 @@ The final image should feel like authentic occult documentation - something a Vi
         entity_type: sanitized.entityType,
         entity_description: sanitized.entityDescription,
         sketch_url: publicUrl,
+        sketch_path: fileName,
       })
       .select()
       .single();
@@ -206,6 +216,7 @@ The final image should feel like authentic occult documentation - something a Vi
     return new Response(JSON.stringify({ 
       success: true, 
       sketch_url: publicUrl,
+      sketch_path: fileName,
       sketch_id: sketchRecord?.id 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
