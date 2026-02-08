@@ -44,12 +44,12 @@ export function useSubscription() {
     }
   }, [deviceId]);
 
-  const startCheckout = useCallback(async (email?: string) => {
+  const startCheckout = useCallback(async (email?: string, priceId?: string) => {
     if (!deviceId) return null;
 
     try {
       const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { deviceId, email },
+        body: { deviceId, email, priceId },
       });
 
       if (error) {
@@ -60,6 +60,26 @@ export function useSubscription() {
       return data?.url ?? null;
     } catch (error) {
       console.error("Error creating checkout:", error);
+      return null;
+    }
+  }, [deviceId]);
+
+  const openCustomerPortal = useCallback(async () => {
+    if (!deviceId) return null;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("customer-portal", {
+        body: { deviceId },
+      });
+
+      if (error) {
+        console.error("Error opening customer portal:", error);
+        return null;
+      }
+
+      return data?.url ?? null;
+    } catch (error) {
+      console.error("Error opening customer portal:", error);
       return null;
     }
   }, [deviceId]);
@@ -94,5 +114,6 @@ export function useSubscription() {
     isBoosted: status.subscribed,
     checkSubscription,
     startCheckout,
+    openCustomerPortal,
   };
 }

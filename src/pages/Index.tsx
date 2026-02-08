@@ -13,7 +13,7 @@ import { useSpiritScan } from "@/hooks/useSpiritScan";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useScanLimit } from "@/hooks/useScanLimit";
 import { useEntitySketch } from "@/hooks/useEntitySketch";
-import { Crown, ImageIcon, MessageCircle } from "lucide-react";
+import { Crown, ImageIcon, MessageCircle, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Finding } from "@/hooks/useSpiritScan";
 
@@ -76,15 +76,19 @@ const Index = () => {
                   Gallery
                 </Link>
               </Button>
+              <Button asChild variant="outline" size="sm">
+                <Link to="/pricing" className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4" />
+                  Manage Plan
+                </Link>
+              </Button>
             </div>
           ) : !subscriptionLoading && (
-            <Button
-              onClick={() => startCheckout()}
-              variant="outline"
-              className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-            >
-              <Crown className="w-4 h-4 mr-2" />
-              Upgrade to Boosted - $1/month
+            <Button asChild variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
+              <Link to="/pricing" className="flex items-center gap-2">
+                <Crown className="w-4 h-4" />
+                View Pricing Plans
+              </Link>
             </Button>
           )}
         </div>
