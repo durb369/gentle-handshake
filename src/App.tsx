@@ -10,6 +10,7 @@ import SpiritJournal from "./pages/SpiritJournal";
 import EntityEncyclopedia from "./pages/EntityEncyclopedia";
 import SketchGallery from "./pages/SketchGallery";
 import BoostedFeatures from "./pages/BoostedFeatures";
+import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 
@@ -51,6 +52,7 @@ const App = () => {
               <Route path="/encyclopedia" element={<EntityEncyclopedia />} />
               <Route path="/gallery" element={<SketchGallery />} />
               <Route path="/psychic" element={<BoostedFeatures />} />
+              <Route path="/pricing" element={<Pricing />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

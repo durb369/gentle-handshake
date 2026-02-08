@@ -8,7 +8,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const BOOSTED_PRICE_ID = "price_1Sw30mPBmofuj4yB0BnawNLh";
+const DEFAULT_PRICE_ID = "price_1Sw30mPBmofuj4yB0BnawNLh"; // Boosted tier
+const PREMIUM_PRICE_ID = "price_1SybjyPBmofuj4yBljJi2g3j"; // Premium tier
+
+const VALID_PRICE_IDS = [DEFAULT_PRICE_ID, PREMIUM_PRICE_ID];
 
 const logStep = (step: string, details?: Record<string, unknown>) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -23,7 +26,7 @@ serve(async (req) => {
   try {
     logStep("Function started");
     
-    const { deviceId, email } = await req.json();
+    const { deviceId, email, priceId } = await req.json();
     
     // Validate device ID
     const deviceValidation = validateDeviceId(deviceId);
@@ -45,8 +48,11 @@ serve(async (req) => {
       logStep("Email validation failed", { error: emailValidation.error });
       return createErrorResponse(emailValidation.error!, 400, corsHeaders);
     }
+
+    // Validate and select price ID
+    const selectedPriceId = priceId && VALID_PRICE_IDS.includes(priceId) ? priceId : DEFAULT_PRICE_ID;
     
-    logStep("Validation passed", { deviceId: deviceId.substring(0, 20) + '...', hasEmail: !!email, remaining: rateLimit.remaining });
+    logStep("Validation passed", { deviceId: deviceId.substring(0, 20) + '...', hasEmail: !!email, priceId: selectedPriceId, remaining: rateLimit.remaining });
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
@@ -71,7 +77,7 @@ serve(async (req) => {
       customer_email: customerId ? undefined : email,
       line_items: [
         {
-          price: BOOSTED_PRICE_ID,
+          price: selectedPriceId,
           quantity: 1,
         },
       ],
