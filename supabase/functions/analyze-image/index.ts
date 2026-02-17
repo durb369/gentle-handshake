@@ -164,7 +164,7 @@ If you genuinely see nothing supernatural, say so honestly but kindly - perhaps 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           { role: "system", content: systemPrompt },
           {
