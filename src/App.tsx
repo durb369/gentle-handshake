@@ -13,6 +13,7 @@ import BoostedFeatures from "./pages/BoostedFeatures";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import PlayStoreListing from "./pages/PlayStoreListing";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 
 const queryClient = new QueryClient();
@@ -55,6 +56,7 @@ const App = () => {
               <Route path="/psychic" element={<BoostedFeatures />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/play-store-listing" element={<PlayStoreListing />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
