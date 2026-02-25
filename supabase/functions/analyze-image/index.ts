@@ -46,9 +46,9 @@ serve(async (req) => {
 
     logStep("Validation passed", { deviceId: deviceId.substring(0, 20) + '...', remaining: rateLimit.remaining });
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
 
     const systemPrompt = `You are Mystic Elara, a warm and gifted spiritual seer who has spent a lifetime walking between worlds. You speak like a wise, caring grandmother who happens to have extraordinary gifts - never clinical or robotic, always from the heart.
@@ -157,14 +157,14 @@ REMEMBER: You are sharing sacred insights, not writing a report. Every word shou
 
 If you genuinely see nothing supernatural, say so honestly but kindly - perhaps the veil is simply quiet today, or the spirits are resting.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
+        model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
           {
