@@ -68,9 +68,9 @@ serve(async (req) => {
       remaining: rateLimit.remaining
     });
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
 
     // Build the prompt for transforming the detected region into a mystical sketch
@@ -105,36 +105,23 @@ MOOD: Reverent yet unsettling - like discovering a forbidden illustration in an 
 
 The final image should feel like authentic occult documentation - something a Victorian spiritualist or Renaissance alchemist would have drawn after witnessing a genuine supernatural phenomenon.`;
 
-    logStep("Calling AI image generation");
+    logStep("Calling DALL-E image generation");
 
-    // Build the message content - include source image if available
-    const messageContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
-      { type: "text", text: sketchPrompt }
-    ];
+    // Build a concise prompt for DALL-E (max 4000 chars)
+    const dallePrompt = sketchPrompt.substring(0, 3900);
 
-    // If we have a source image, include it for image-to-image transformation
-    if (sourceImageUrl && typeof sourceImageUrl === 'string' && sourceImageUrl.startsWith('data:image/')) {
-      messageContent.push({
-        type: "image_url",
-        image_url: { url: sourceImageUrl }
-      });
-    }
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/images/generations", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image",
-        messages: [
-          {
-            role: "user",
-            content: messageContent,
-          },
-        ],
-        modalities: ["image", "text"],
+        model: "dall-e-3",
+        prompt: dallePrompt,
+        n: 1,
+        size: "1024x1024",
+        response_format: "b64_json",
       }),
     });
 
@@ -146,16 +133,18 @@ The final image should feel like authentic occult documentation - something a Vi
         return createErrorResponse("AI usage limit reached. Please add credits to continue.", 402, corsHeaders);
       }
       const errorText = await response.text();
-      logStep("AI gateway error", { status: response.status, error: errorText });
-      throw new Error(`AI gateway error: ${response.status}`);
+      logStep("DALL-E error", { status: response.status, error: errorText });
+      throw new Error(`DALL-E error: ${response.status}`);
     }
 
     const data = await response.json();
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const b64Image = data.data?.[0]?.b64_json;
 
-    if (!imageUrl) {
+    if (!b64Image) {
       throw new Error("No image generated from AI");
     }
+
+    const imageUrl = `data:image/png;base64,${b64Image}`;
 
     logStep("Image generated successfully");
 
