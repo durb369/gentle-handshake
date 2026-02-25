@@ -68,60 +68,29 @@ serve(async (req) => {
       remaining: rateLimit.remaining
     });
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build the prompt for transforming the detected region into a mystical sketch
-    const sketchPrompt = `Transform this image into a haunting supernatural revelation - as if the veil between worlds has lifted to expose what lies beneath.
+    logStep("Calling Lovable AI image generation");
 
-DETECTED ENTITY: ${sanitized.entityType}
-${sanitized.entityDescription ? `MANIFESTATION: ${sanitized.entityDescription}` : ''}
-${sanitized.intent ? `SPIRITUAL INTENT: ${sanitized.intent}` : ''}
-${sanitized.powerLevel ? `POWER RESONANCE: ${sanitized.powerLevel}` : ''}
+    const imagePrompt = sketchPrompt.substring(0, 3900);
 
-ART DIRECTION:
-- Style: Dark Renaissance occult illustration meets Victorian spirit photography
-- Medium: Aged parchment with ink, charcoal, and silver-point technique
-- Atmosphere: Chiaroscuro lighting with deep shadows bleeding into luminous highlights
-
-CRITICAL VISUAL ELEMENTS:
-1. PRESERVE the exact silhouettes, forms, and spatial arrangement from the source - this IS the entity
-2. Apply heavy crosshatching and stippling to create depth and texture
-3. Add crackling energy lines and etheric wisps emanating from the form
-4. Include subtle sacred geometry patterns (vesica piscis, flower of life fragments) in the background
-5. Create a halo or aura effect using radiating fine lines
-6. Add aged paper texture with foxing and torn edges
-7. Incorporate alchemical or runic symbols floating near the entity
-
-COLOR PALETTE:
-- Primarily sepia and burnt umber tones on aged cream parchment
-- Accent with spectral blue-white glow around ethereal elements
-- Deep shadow areas in rich charcoal black
-- Optional: faint violet or gold leaf highlights on energy manifestations
-
-MOOD: Reverent yet unsettling - like discovering a forbidden illustration in an ancient grimoire that reveals truths the eye cannot normally perceive.
-
-The final image should feel like authentic occult documentation - something a Victorian spiritualist or Renaissance alchemist would have drawn after witnessing a genuine supernatural phenomenon.`;
-
-    logStep("Calling DALL-E image generation");
-
-    // Build a concise prompt for DALL-E (max 4000 chars)
-    const dallePrompt = sketchPrompt.substring(0, 3900);
-
-    const response = await fetch("https://api.openai.com/v1/images/generations", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "dall-e-3",
-        prompt: dallePrompt,
-        n: 1,
-        size: "1024x1024",
-        response_format: "b64_json",
+        model: "google/gemini-3-pro-image-preview",
+        messages: [
+          {
+            role: "user",
+            content: `Generate an image based on this description. Return ONLY the image, no text:\n\n${imagePrompt}`,
+          },
+        ],
       }),
     });
 
@@ -133,12 +102,34 @@ The final image should feel like authentic occult documentation - something a Vi
         return createErrorResponse("AI usage limit reached. Please add credits to continue.", 402, corsHeaders);
       }
       const errorText = await response.text();
-      logStep("DALL-E error", { status: response.status, error: errorText });
-      throw new Error(`DALL-E error: ${response.status}`);
+      logStep("Image generation error", { status: response.status, error: errorText });
+      throw new Error(`Image generation error: ${response.status}`);
     }
 
     const data = await response.json();
-    const b64Image = data.data?.[0]?.b64_json;
+    
+    // Extract image from Gemini image response
+    const content = data.choices?.[0]?.message?.content;
+    let b64Image: string | null = null;
+    
+    // Check if response contains inline_data (base64 image)
+    const parts = data.choices?.[0]?.message?.parts;
+    if (parts) {
+      for (const part of parts) {
+        if (part.inline_data?.data) {
+          b64Image = part.inline_data.data;
+          break;
+        }
+      }
+    }
+    
+    // Fallback: check if content itself is base64 or contains a data URL
+    if (!b64Image && content) {
+      const dataUrlMatch = content.match(/data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)/);
+      if (dataUrlMatch) {
+        b64Image = dataUrlMatch[1];
+      }
+    }
 
     if (!b64Image) {
       throw new Error("No image generated from AI");

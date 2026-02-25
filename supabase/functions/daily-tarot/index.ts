@@ -146,9 +146,9 @@ serve(async (req) => {
     const card = allCards[cardIndex];
     const isReversed = (Math.abs(hash >> 8) % 2) === 1;
 
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-    if (!OPENAI_API_KEY) {
-      throw new Error("OPENAI_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
     }
 
     const prompt = `You are Mystic Elara, a warm and gifted tarot reader. You've just drawn ${card.name}${isReversed ? " (Reversed)" : ""} for someone seeking daily guidance.
@@ -165,14 +165,14 @@ Write a personal, warm daily reading (about 150-200 words) that:
 
 Speak like a caring friend sharing mystical wisdom, not like reading from a textbook. Use phrases like "Oh, what a beautiful draw for you today!" or "The cards are speaking clearly, dear one..." Make it feel personal and meaningful.`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "google/gemini-3-flash-preview",
         messages: [
           { role: "user", content: prompt }
         ],
