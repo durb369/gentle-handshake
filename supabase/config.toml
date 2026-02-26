@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.get-user-data]
 verify_jwt = false
+
+[functions.fortune-teller]
+verify_jwt = false

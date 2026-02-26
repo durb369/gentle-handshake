@@ -14,6 +14,7 @@ import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import PlayStoreListing from "./pages/PlayStoreListing";
+import FortuneTeller from "./pages/FortuneTeller";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ const App = () => {
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/play-store-listing" element={<PlayStoreListing />} />
+              <Route path="/fortune-teller" element={<FortuneTeller />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
