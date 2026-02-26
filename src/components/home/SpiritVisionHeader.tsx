@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Eye, Ghost, Shield, Moon, BookOpen, Book } from "lucide-react";
+import { Eye, Ghost, Shield, Moon, BookOpen, Book, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function SpiritVisionHeader() {
@@ -19,6 +19,12 @@ export function SpiritVisionHeader() {
           <Button variant="outline" className="gap-2">
             <Book className="w-4 h-4" />
             Bestiary
+          </Button>
+        </Link>
+        <Link to="/fortune-teller">
+          <Button variant="outline" className="gap-2">
+            <Sparkles className="w-4 h-4" />
+            Fortune Teller
           </Button>
         </Link>
       </div>
