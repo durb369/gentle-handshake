@@ -68,7 +68,7 @@ const Section = ({
 
 const APP_TITLE = "Spirit Vision – Ghost & Entity Scanner";
 
-const SHORT_DESCRIPTION = `Detect spirits, ghosts & entities hidden in your photos using advanced AI analysis.`;
+const SHORT_DESCRIPTION = `Detect spirits, ghosts & entities hidden in your photos using AI analysis.`;
 
 const FULL_DESCRIPTION = `👁️ SPIRIT VISION — SEE BEYOND THE VEIL
 
