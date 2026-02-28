@@ -23,10 +23,6 @@ export default function SketchGallery() {
       <div className="min-h-screen bg-mystic-gradient relative overflow-hidden">
         <div className="absolute inset-0 bg-glow-gradient pointer-events-none" />
         <div className="relative z-10 container mx-auto px-4 py-8">
-          <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Spirit Vision
-          </Link>
 
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-8">
@@ -48,10 +44,6 @@ export default function SketchGallery() {
       <div className="absolute inset-0 bg-glow-gradient pointer-events-none" />
       
       <div className="relative z-10 container mx-auto px-4 py-8">
-        <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Spirit Vision
-        </Link>
 
         <div className="flex items-center gap-3 mb-8">
           <Ghost className="w-8 h-8 text-primary" />

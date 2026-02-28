@@ -116,22 +116,13 @@ const Pricing = () => {
 
       <div className="relative z-10 container mx-auto px-4 py-8 md:py-12">
         {/* Header */}
-        <div className="mb-8">
-          <Button asChild variant="ghost" size="sm" className="mb-4">
-            <Link to="/" className="flex items-center gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Scanner
-            </Link>
-          </Button>
-          
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent mb-4">
-              Choose Your Path
-            </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Unlock deeper spiritual insights and connect with the unseen realm
-            </p>
-          </div>
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent mb-4">
+            Choose Your Path
+          </h1>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Unlock deeper spiritual insights and connect with the unseen realm
+          </p>
         </div>
 
         {/* Pricing Cards */}

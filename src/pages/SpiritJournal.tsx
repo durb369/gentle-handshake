@@ -166,20 +166,13 @@ const SpiritJournal = () => {
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Link to="/">
-            <Button variant="ghost" size="icon" className="rounded-full">
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-accent/10 border border-accent/20">
-              <BookOpen className="w-6 h-6 text-accent" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Spirit Journal</h1>
-              <p className="text-sm text-muted-foreground">Track your spiritual encounters</p>
-            </div>
+        <div className="flex items-center gap-3 mb-8">
+          <div className="p-2 rounded-full bg-accent/10 border border-accent/20">
+            <BookOpen className="w-6 h-6 text-accent" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Spirit Journal</h1>
+            <p className="text-sm text-muted-foreground">Track your spiritual encounters</p>
           </div>
         </div>
 

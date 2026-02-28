@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
-import { Eye, Ghost, Shield, Moon, BookOpen, Book, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Eye, Ghost, Shield, Moon } from "lucide-react";
 
 export function SpiritVisionHeader() {
   return (
@@ -9,24 +8,6 @@ export function SpiritVisionHeader() {
         <div className="p-3 rounded-full bg-primary/10 border border-primary/20 shadow-mystic">
           <Eye className="w-8 h-8 text-primary" />
         </div>
-        <Link to="/journal">
-          <Button variant="outline" className="gap-2">
-            <BookOpen className="w-4 h-4" />
-            Journal
-          </Button>
-        </Link>
-        <Link to="/encyclopedia">
-          <Button variant="outline" className="gap-2">
-            <Book className="w-4 h-4" />
-            Bestiary
-          </Button>
-        </Link>
-        <Link to="/fortune-teller">
-          <Button variant="outline" className="gap-2">
-            <Sparkles className="w-4 h-4" />
-            Fortune Teller
-          </Button>
-        </Link>
       </div>
       
       <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 tracking-tight">

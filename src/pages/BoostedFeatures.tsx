@@ -25,14 +25,7 @@ export default function BoostedFeatures() {
       <div className="min-h-screen bg-mystic-gradient relative overflow-hidden">
         <div className="absolute inset-0 bg-glow-gradient pointer-events-none" />
         
-        <div className="relative z-10 container mx-auto px-4 py-12">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Spirit Scanner
-          </Link>
+          <div className="relative z-10 container mx-auto px-4 py-12">
 
           <div className="max-w-md mx-auto text-center space-y-6">
             <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
@@ -95,15 +88,7 @@ export default function BoostedFeatures() {
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Link>
-
+        <div className="flex items-center justify-center mb-8">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 text-sm font-medium">
             <Crown className="w-4 h-4" />
             Boosted

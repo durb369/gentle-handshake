@@ -16,20 +16,19 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import PlayStoreListing from "./pages/PlayStoreListing";
 import FortuneTeller from "./pages/FortuneTeller";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
+import { AppLayout } from "@/components/layout/AppLayout";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
-      // eslint-disable-next-line no-console
       console.error("Unhandled promise rejection:", event.reason);
       toast.error("Something went wrong. Please try again.");
       event.preventDefault();
     };
 
     const onError = (event: ErrorEvent) => {
-      // eslint-disable-next-line no-console
       console.error("Window error:", event.error ?? event.message);
       toast.error("Something went wrong. Please try again.");
     };
@@ -49,19 +48,20 @@ const App = () => {
         <Sonner />
         <AppErrorBoundary>
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/journal" element={<SpiritJournal />} />
-              <Route path="/encyclopedia" element={<EntityEncyclopedia />} />
-              <Route path="/gallery" element={<SketchGallery />} />
-              <Route path="/psychic" element={<BoostedFeatures />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/play-store-listing" element={<PlayStoreListing />} />
-              <Route path="/fortune-teller" element={<FortuneTeller />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppLayout>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/journal" element={<SpiritJournal />} />
+                <Route path="/encyclopedia" element={<EntityEncyclopedia />} />
+                <Route path="/gallery" element={<SketchGallery />} />
+                <Route path="/psychic" element={<BoostedFeatures />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/play-store-listing" element={<PlayStoreListing />} />
+                <Route path="/fortune-teller" element={<FortuneTeller />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </AppLayout>
           </BrowserRouter>
         </AppErrorBoundary>
       </TooltipProvider>
