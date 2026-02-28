@@ -13,15 +13,16 @@ import {
 interface CameraCaptureProps {
   onCapture: (base64: string) => void;
   onClose: () => void;
+  initialMode?: ImagingMode;
 }
 
-export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
+export function CameraCapture({ onCapture, onClose, initialMode = "reflection" }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
-  const [imagingMode, setImagingMode] = useState<ImagingMode>("reflection");
+  const [imagingMode, setImagingMode] = useState<ImagingMode>(initialMode);
   
   // Filter controls for each mode
   const [reflectionIntensity, setReflectionIntensity] = useState([50]);
