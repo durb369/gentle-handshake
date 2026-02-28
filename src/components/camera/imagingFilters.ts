@@ -100,7 +100,89 @@ function detectAnomalies(
   return anomalies;
 }
 
-// Apply thermal infrared with energy field detection
+// Detect fog/smoke/mist disturbances: low local contrast + medium luminance + soft edges
+function detectDisturbances(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  blockSize: number = 12
+): Float32Array {
+  const disturbances = new Float32Array(width * height);
+  const blocksX = Math.floor(width / blockSize);
+  const blocksY = Math.floor(height / blockSize);
+
+  // Per-block: compute mean luminance, variance (contrast), and color saturation
+  const blockScores: number[] = [];
+  for (let by = 0; by < blocksY; by++) {
+    for (let bx = 0; bx < blocksX; bx++) {
+      let sumL = 0, sumL2 = 0, sumSat = 0, count = 0;
+      for (let y = by * blockSize; y < (by + 1) * blockSize && y < height; y++) {
+        for (let x = bx * blockSize; x < (bx + 1) * blockSize && x < width; x++) {
+          const i = (y * width + x) * 4;
+          const r = data[i], g = data[i + 1], b = data[i + 2];
+          const lum = (r * 0.299 + g * 0.587 + b * 0.114);
+          const maxC = Math.max(r, g, b), minC = Math.min(r, g, b);
+          const sat = maxC > 0 ? (maxC - minC) / maxC : 0;
+          sumL += lum;
+          sumL2 += lum * lum;
+          sumSat += sat;
+          count++;
+        }
+      }
+      const meanL = sumL / count;
+      const variance = (sumL2 / count) - (meanL * meanL);
+      const meanSat = sumSat / count;
+
+      // Fog/smoke/mist characteristics:
+      // - Low variance (low local contrast = hazy)
+      // - Medium luminance (not pure black, not pure white)
+      // - Low saturation (desaturated/washed out)
+      const lowContrast = Math.max(0, 1 - variance / 1200); // high when flat
+      const midLum = 1 - Math.abs(meanL / 255 - 0.5) * 2; // peaks at mid-brightness
+      const lowSat = Math.max(0, 1 - meanSat * 3); // high when desaturated
+      
+      // Composite disturbance score
+      const score = lowContrast * 0.5 + midLum * 0.25 + lowSat * 0.25;
+      blockScores.push(Math.min(1, Math.max(0, score)));
+    }
+  }
+
+  // Write block scores into pixel map with smooth edges
+  let blockIdx = 0;
+  for (let by = 0; by < blocksY; by++) {
+    for (let bx = 0; bx < blocksX; bx++) {
+      const score = blockScores[blockIdx];
+      for (let y = by * blockSize; y < (by + 1) * blockSize && y < height; y++) {
+        for (let x = bx * blockSize; x < (bx + 1) * blockSize && x < width; x++) {
+          disturbances[y * width + x] = score;
+        }
+      }
+      blockIdx++;
+    }
+  }
+
+  // Simple blur pass for smoother transitions
+  const blurred = new Float32Array(disturbances.length);
+  const r = 6;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      let sum = 0, cnt = 0;
+      for (let dy = -r; dy <= r; dy += 3) {
+        for (let dx = -r; dx <= r; dx += 3) {
+          const nx = Math.min(width - 1, Math.max(0, x + dx));
+          const ny = Math.min(height - 1, Math.max(0, y + dy));
+          sum += disturbances[ny * width + nx];
+          cnt++;
+        }
+      }
+      blurred[y * width + x] = sum / cnt;
+    }
+  }
+
+  return blurred;
+}
+
+// Apply thermal infrared with energy field detection + disturbance highlighting
 function applyThermalFilter(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -114,6 +196,7 @@ function applyThermalFilter(
   // Detect edges for energy field boundaries
   const edges = detectEdges(data, width, height);
   const anomalies = detectAnomalies(data, width, height);
+  const disturbances = detectDisturbances(data, width, height);
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -123,57 +206,63 @@ function applyThermalFilter(
       // Calculate luminance as "temperature"
       const luminance = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) / 255;
       
-      // Apply sensitivity curve with edge enhancement
+      const disturbance = disturbances[edgeIdx];
+      
+      // Apply sensitivity curve with edge + disturbance enhancement
       const edgeBoost = edges[edgeIdx] * sensitivityFactor * 2;
       const anomalyBoost = anomalies[edgeIdx] * sensitivityFactor;
-      let temp = Math.pow(luminance, 1 - sensitivityFactor * 0.6) + edgeBoost * 0.3 + anomalyBoost * 0.2;
+      // Disturbances push temperature reading UP to make them glow hot
+      const disturbanceBoost = disturbance * sensitivityFactor * 0.5;
+      let temp = Math.pow(luminance, 1 - sensitivityFactor * 0.6) + edgeBoost * 0.3 + anomalyBoost * 0.2 + disturbanceBoost;
       temp = Math.min(1, Math.max(0, temp));
       
-      // Enhanced thermal palette with more dramatic colors
+      // Enhanced thermal palette
       let r: number, g: number, b: number;
       
       if (temp < 0.15) {
-        // Very cold: deep purple/black
         const t = temp / 0.15;
         r = Math.floor(20 + t * 30);
         g = 0;
         b = Math.floor(40 + t * 80);
       } else if (temp < 0.3) {
-        // Cold: purple to blue
         const t = (temp - 0.15) / 0.15;
         r = Math.floor(50 - t * 50);
         g = 0;
         b = Math.floor(120 + t * 135);
       } else if (temp < 0.45) {
-        // Cool: blue to cyan
         const t = (temp - 0.3) / 0.15;
         r = 0;
         g = Math.floor(t * 200);
         b = 255;
       } else if (temp < 0.55) {
-        // Neutral: cyan to green
         const t = (temp - 0.45) / 0.1;
         r = 0;
         g = Math.floor(200 + t * 55);
         b = Math.floor(255 - t * 255);
       } else if (temp < 0.7) {
-        // Warm: green to yellow
         const t = (temp - 0.55) / 0.15;
         r = Math.floor(t * 255);
         g = 255;
         b = 0;
       } else if (temp < 0.85) {
-        // Hot: yellow to orange to red
         const t = (temp - 0.7) / 0.15;
         r = 255;
         g = Math.floor(255 - t * 180);
         b = 0;
       } else {
-        // Extreme: red to white (supernatural hot spots)
         const t = (temp - 0.85) / 0.15;
         r = 255;
         g = Math.floor(75 + t * 180);
         b = Math.floor(t * 255);
+      }
+
+      // Amplify disturbance regions — make fog/smoke/mist glow brightly
+      if (disturbance > 0.35) {
+        const dIntensity = (disturbance - 0.35) / 0.65 * sensitivityFactor;
+        // Push toward hot white/yellow to make disturbances visually pop
+        r = Math.min(255, r + dIntensity * 120);
+        g = Math.min(255, g + dIntensity * 80);
+        b = Math.min(255, b + dIntensity * 40);
       }
 
       // Highlight anomalous regions with pulsing glow effect
@@ -191,7 +280,35 @@ function applyThermalFilter(
 
   ctx.putImageData(imageData, 0, 0);
 
-  // Add energy field glow on edges
+  // --- Disturbance halo overlay: draw glowing blobs over detected disturbance regions ---
+  const haloCanvas = document.createElement("canvas");
+  haloCanvas.width = width;
+  haloCanvas.height = height;
+  const haloCtx = haloCanvas.getContext("2d")!;
+  
+  // Sample disturbance map at intervals to place glow centers
+  const step = 32;
+  for (let y = step; y < height - step; y += step) {
+    for (let x = step; x < width - step; x += step) {
+      const d = disturbances[y * width + x];
+      if (d > 0.45) {
+        const radius = step * (1 + d * 2);
+        const alpha = (d - 0.45) * sensitivityFactor * 0.6;
+        const grad = haloCtx.createRadialGradient(x, y, 0, x, y, radius);
+        grad.addColorStop(0, `rgba(255, 200, 50, ${alpha})`);
+        grad.addColorStop(0.4, `rgba(255, 120, 0, ${alpha * 0.5})`);
+        grad.addColorStop(1, `rgba(255, 50, 0, 0)`);
+        haloCtx.fillStyle = grad;
+        haloCtx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+      }
+    }
+  }
+  
+  ctx.globalCompositeOperation = "screen";
+  ctx.drawImage(haloCanvas, 0, 0);
+  ctx.globalCompositeOperation = "source-over";
+
+  // Energy field glow on edges
   const glowCanvas = document.createElement("canvas");
   glowCanvas.width = width;
   glowCanvas.height = height;
@@ -215,7 +332,7 @@ function applyThermalFilter(
   ctx.filter = "none";
   ctx.globalCompositeOperation = "source-over";
 
-  // Add scan line noise
+  // Scan line noise
   ctx.globalAlpha = 0.08 * sensitivityFactor;
   for (let y = 0; y < height; y += 2) {
     ctx.fillStyle = y % 4 === 0 ? "rgba(255,100,0,0.3)" : "rgba(0,150,255,0.2)";
