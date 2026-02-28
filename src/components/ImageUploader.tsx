@@ -1,8 +1,9 @@
 import { useState, useCallback } from "react";
-import { Upload, X, Eye, Sparkles, Camera, Aperture } from "lucide-react";
+import { Upload, X, Eye, Sparkles, Camera, Aperture, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CameraCapture } from "./CameraCapture";
+import type { ImagingMode } from "@/components/camera";
 
 interface ImageUploaderProps {
   onImageSelect: (base64: string) => void;
@@ -14,6 +15,7 @@ export function ImageUploader({ onImageSelect, isAnalyzing, disabled = false }: 
   const [preview, setPreview] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
+  const [cameraMode, setCameraMode] = useState<ImagingMode>("reflection");
 
   const handleFile = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -69,7 +71,8 @@ export function ImageUploader({ onImageSelect, isAnalyzing, disabled = false }: 
     return (
       <CameraCapture 
         onCapture={handleCameraCapture} 
-        onClose={() => setShowCamera(false)} 
+        onClose={() => setShowCamera(false)}
+        initialMode={cameraMode}
       />
     );
   }
@@ -78,22 +81,42 @@ export function ImageUploader({ onImageSelect, isAnalyzing, disabled = false }: 
     <div className="w-full max-w-2xl mx-auto">
       {!preview ? (
         <div className="space-y-4">
-          {/* Camera Button */}
-          <Button
-            onClick={() => setShowCamera(true)}
-            variant="outline"
-            className="w-full py-8 border-2 border-dashed border-accent/50 hover:border-accent hover:bg-accent/10 transition-all duration-300 group"
-          >
-            <div className="flex flex-col items-center gap-3">
-              <div className="p-4 rounded-full bg-accent/10 group-hover:bg-accent/20 group-hover:shadow-purple-glow transition-all">
-                <Aperture className="w-8 h-8 text-accent" />
+          {/* Camera Buttons */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Reflection Camera */}
+            <Button
+              onClick={() => { setCameraMode("reflection"); setShowCamera(true); }}
+              variant="outline"
+              className="py-6 border-2 border-dashed border-accent/50 hover:border-accent hover:bg-accent/10 transition-all duration-300 group h-auto"
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="p-3 rounded-full bg-accent/10 group-hover:bg-accent/20 group-hover:shadow-purple-glow transition-all">
+                  <Aperture className="w-6 h-6 text-accent" />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-foreground text-sm">Spirit Glass</p>
+                  <p className="text-[10px] text-muted-foreground">Reflection filter</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="font-semibold text-foreground">Use Reflection Filter Camera</p>
-                <p className="text-xs text-muted-foreground">Capture with the dimensional mirror filter</p>
+            </Button>
+
+            {/* Thermal Camera */}
+            <Button
+              onClick={() => { setCameraMode("thermal"); setShowCamera(true); }}
+              variant="outline"
+              className="py-6 border-2 border-dashed border-orange-500/50 hover:border-orange-500 hover:bg-orange-500/10 transition-all duration-300 group h-auto"
+            >
+              <div className="flex flex-col items-center gap-2">
+                <div className="p-3 rounded-full bg-orange-500/10 group-hover:bg-orange-500/20 transition-all">
+                  <Flame className="w-6 h-6 text-orange-400" />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-foreground text-sm">Thermal Scan</p>
+                  <p className="text-[10px] text-muted-foreground">Energy field detection</p>
+                </div>
               </div>
-            </div>
-          </Button>
+            </Button>
+          </div>
 
           {/* Divider */}
           <div className="flex items-center gap-4">
