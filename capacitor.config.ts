@@ -13,9 +13,11 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       launchAutoHide: true,
-      launchShowDuration: 2000,
+      launchShowDuration: 2500,
       backgroundColor: '#1a1625',
       showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true,
     },
     Keyboard: {
       resize: 'body',
