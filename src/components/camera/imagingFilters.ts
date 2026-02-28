@@ -7,6 +7,8 @@ interface FilterSettings {
   thermalSensitivity: number;
   spectralBands: number;
   polarizationAngle: number;
+  focusDistance: number; // 0 = background, 50 = glass plane (midpoint), 100 = foreground
+  glassPanes: number;   // number of glass layers (1-3)
 }
 
 // Sobel edge detection for anomaly highlighting
@@ -422,7 +424,7 @@ function applyPolarimetricFilter(
   ctx.fillRect(0, 0, width, height);
 }
 
-// Apply reflection filter with spirit detection
+// Apply realistic glass pane + reflection filter with spirit detection
 function applyReflectionFilter(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -435,56 +437,141 @@ function applyReflectionFilter(
   const reflectIntensity = settings.reflectionIntensity / 100;
   const lightIntensity = settings.lightBleed / 100;
   const shadowIntensity = settings.shadowDepth / 100;
+  const focusDist = settings.focusDistance / 100; // 0=bg sharp, 0.5=glass plane, 1=fg sharp
+  const panes = Math.max(1, Math.min(3, Math.round((settings.glassPanes ?? 50) / 33.4 + 1)));
   
   const edges = detectEdges(data, width, height);
   const anomalies = detectAnomalies(data, width, height, 10);
 
+  // --- Pass 1: Depth-of-field blur based on focus distance ---
+  // When focus is at midpoint (glass plane), the background gets blurred
+  // simulating focusing between camera and subject
+  const blurRadius = Math.round(focusDist * 4); // 0-4px blur on background
+  let blurredData: Uint8ClampedArray | null = null;
+  
+  if (blurRadius > 0) {
+    // Simple box blur for depth-of-field effect
+    blurredData = new Uint8ClampedArray(data.length);
+    const r = blurRadius;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        let sumR = 0, sumG = 0, sumB = 0, count = 0;
+        for (let dy = -r; dy <= r; dy++) {
+          for (let dx = -r; dx <= r; dx++) {
+            const nx = Math.min(width - 1, Math.max(0, x + dx));
+            const ny = Math.min(height - 1, Math.max(0, y + dy));
+            const ni = (ny * width + nx) * 4;
+            sumR += data[ni];
+            sumG += data[ni + 1];
+            sumB += data[ni + 2];
+            count++;
+          }
+        }
+        const i = (y * width + x) * 4;
+        blurredData[i] = sumR / count;
+        blurredData[i + 1] = sumG / count;
+        blurredData[i + 2] = sumB / count;
+        blurredData[i + 3] = 255;
+      }
+    }
+  }
+
+  // --- Pass 2: Per-pixel glass simulation ---
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
       const edgeIdx = y * width + x;
       
-      // Create dimensional distortion waves
-      const distortX = Math.sin((x + y * 0.5) * 0.03 + settings.reflectionIntensity * 0.01) * 10 * reflectIntensity;
-      const distortY = Math.cos((y + x * 0.3) * 0.02) * 5 * reflectIntensity;
+      // Start from depth-blurred image if focusing on glass plane
+      let r: number, g: number, b: number;
+      if (blurredData) {
+        r = blurredData[i];
+        g = blurredData[i + 1];
+        b = blurredData[i + 2];
+      } else {
+        r = data[i];
+        g = data[i + 1];
+        b = data[i + 2];
+      }
       
-      const srcX = Math.min(width - 1, Math.max(0, Math.floor(x + distortX)));
-      const srcY = Math.min(height - 1, Math.max(0, Math.floor(y + distortY)));
-      const srcI = (srcY * width + srcX) * 4;
-      
-      // Blend with distorted source
-      const distortBlend = 0.3 * reflectIntensity;
-      let r = data[i] * (1 - distortBlend) + data[srcI] * distortBlend;
-      let g = data[i + 1] * (1 - distortBlend) + data[srcI + 1] * distortBlend;
-      let b = data[i + 2] * (1 - distortBlend) + data[srcI + 2] * distortBlend;
-      
-      // Light bleed from other dimensions
-      const diagonalFactor = Math.sin((x + y) * 0.015) * 0.5 + 0.5;
-      const lightBleedEffect = Math.pow(diagonalFactor, 1.5) * lightIntensity * 80;
-      
-      // Shadow depth for hidden entities
-      const luminance = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
-      const shadowEnhance = luminance < 0.35 ? (0.35 - luminance) * shadowIntensity * 80 : 0;
-      
-      // Edge highlighting for spirit forms
-      const edgeGlow = edges[edgeIdx] * reflectIntensity * 50;
-      const anomalyGlow = anomalies[edgeIdx] * reflectIntensity * 40;
-      
-      // Mirror reflection from alternate plane
-      const mirrorX = width - x - 1;
-      const mirrorI = (y * width + Math.min(mirrorX + Math.floor(width * 0.05), width - 1)) * 4;
-      const mirrorBlend = reflectIntensity * 0.25 * (0.5 + Math.sin(x * 0.02) * 0.5);
-      
-      r = Math.min(255, r + lightBleedEffect - shadowEnhance + (data[mirrorI] - r) * mirrorBlend + edgeGlow);
-      g = Math.min(255, g + lightBleedEffect * 0.85 - shadowEnhance + (data[mirrorI + 1] - g) * mirrorBlend + edgeGlow * 0.8);
-      b = Math.min(255, b + lightBleedEffect * 1.3 - shadowEnhance + (data[mirrorI + 2] - b) * mirrorBlend + edgeGlow * 1.2 + anomalyGlow);
-      
-      // Mystical vignette
+      // --- Glass refraction: slight chromatic aberration per pane ---
+      for (let p = 0; p < panes; p++) {
+        const paneOffset = (p + 1) * 2 * reflectIntensity;
+        // Red channel shifts right, blue shifts left (chromatic aberration)
+        const srcXr = Math.min(width - 1, Math.max(0, Math.floor(x + paneOffset)));
+        const srcXb = Math.min(width - 1, Math.max(0, Math.floor(x - paneOffset)));
+        const srcIr = (y * width + srcXr) * 4;
+        const srcIb = (y * width + srcXb) * 4;
+        const src = blurredData ?? data;
+        
+        const caBlend = 0.15 * reflectIntensity / panes;
+        r = r * (1 - caBlend) + src[srcIr] * caBlend;
+        b = b * (1 - caBlend) + src[srcIb + 2] * caBlend;
+      }
+
+      // --- Fresnel reflection: brighter at edges (grazing angles) ---
       const centerX = width / 2;
       const centerY = height / 2;
-      const distFromCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
-      const maxDist = Math.sqrt(Math.pow(centerX, 2) + Math.pow(centerY, 2));
-      const vignette = 1 - (distFromCenter / maxDist) * 0.4 * reflectIntensity;
+      const nx = (x - centerX) / centerX; // -1 to 1
+      const ny = (y - centerY) / centerY;
+      const viewAngle = Math.sqrt(nx * nx + ny * ny); // 0 at center, ~1.4 at corners
+      // Schlick's approximation: R = R0 + (1-R0)(1-cos(theta))^5
+      const R0 = 0.04; // glass refractive index ~1.5
+      const cosTheta = Math.max(0, 1 - Math.min(1, viewAngle));
+      const fresnelReflectance = R0 + (1 - R0) * Math.pow(1 - cosTheta, 5);
+      const fresnelBoost = fresnelReflectance * reflectIntensity * 200;
+      
+      r = Math.min(255, r + fresnelBoost);
+      g = Math.min(255, g + fresnelBoost);
+      b = Math.min(255, b + fresnelBoost * 1.1); // glass reflects slightly blue
+
+      // --- Glass surface distortion waves (per pane) ---
+      for (let p = 0; p < panes; p++) {
+        const freq = 0.025 + p * 0.01;
+        const phase = p * 1.5;
+        const distortX = Math.sin((x + y * 0.5) * freq + phase) * 6 * reflectIntensity;
+        const distortY = Math.cos((y + x * 0.3) * freq * 0.8 + phase) * 3 * reflectIntensity;
+        
+        const srcX = Math.min(width - 1, Math.max(0, Math.floor(x + distortX)));
+        const srcY = Math.min(height - 1, Math.max(0, Math.floor(y + distortY)));
+        const srcI = (srcY * width + srcX) * 4;
+        const src = blurredData ?? data;
+        
+        const distortBlend = 0.12 * reflectIntensity / panes;
+        r = r * (1 - distortBlend) + src[srcI] * distortBlend;
+        g = g * (1 - distortBlend) + src[srcI + 1] * distortBlend;
+        b = b * (1 - distortBlend) + src[srcI + 2] * distortBlend;
+      }
+
+      // --- Mirror plane reflection (from alternate side) ---
+      const mirrorX = width - x - 1;
+      const mirrorI = (y * width + mirrorX) * 4;
+      const mirrorBlend = reflectIntensity * 0.2 * fresnelReflectance * 3;
+      const src = blurredData ?? data;
+      r = r + (src[mirrorI] - r) * mirrorBlend;
+      g = g + (src[mirrorI + 1] - g) * mirrorBlend;
+      b = b + (src[mirrorI + 2] - b) * mirrorBlend;
+
+      // --- Light bleed from other dimensions ---
+      const diagonalFactor = Math.sin((x + y) * 0.015) * 0.5 + 0.5;
+      const lightBleedEffect = Math.pow(diagonalFactor, 1.5) * lightIntensity * 60;
+      
+      // --- Shadow depth for hidden entities ---
+      const luminance = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+      const shadowEnhance = luminance < 0.35 ? (0.35 - luminance) * shadowIntensity * 60 : 0;
+      
+      // Edge highlighting for spirit forms
+      const edgeGlow = edges[edgeIdx] * reflectIntensity * 40;
+      const anomalyGlow = anomalies[edgeIdx] * reflectIntensity * 30;
+      
+      r = Math.min(255, r + lightBleedEffect - shadowEnhance + edgeGlow);
+      g = Math.min(255, g + lightBleedEffect * 0.85 - shadowEnhance + edgeGlow * 0.8);
+      b = Math.min(255, b + lightBleedEffect * 1.3 - shadowEnhance + edgeGlow * 1.2 + anomalyGlow);
+      
+      // Vignette (natural lens darkening)
+      const distFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+      const maxDist = Math.sqrt(centerX ** 2 + centerY ** 2);
+      const vignette = 1 - (distFromCenter / maxDist) * 0.35 * reflectIntensity;
       
       data[i] = Math.max(0, Math.min(255, r * vignette));
       data[i + 1] = Math.max(0, Math.min(255, g * vignette));
@@ -494,23 +581,42 @@ function applyReflectionFilter(
 
   ctx.putImageData(imageData, 0, 0);
 
-  // Add ethereal glass reflection overlay
+  // --- Glass surface highlight streaks (specular reflections on panes) ---
+  for (let p = 0; p < panes; p++) {
+    const angle = 120 + p * 25;
+    const opacity = 0.06 * reflectIntensity * (1 + focusDist * 0.5);
+    const grad = ctx.createLinearGradient(
+      0, 0,
+      width * Math.cos(angle * Math.PI / 180),
+      height * Math.sin(angle * Math.PI / 180)
+    );
+    grad.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+    grad.addColorStop(0.3, `rgba(220, 235, 255, ${opacity * 0.5})`);
+    grad.addColorStop(0.5, `transparent`);
+    grad.addColorStop(0.7, `rgba(200, 220, 255, ${opacity * 0.4})`);
+    grad.addColorStop(1, `rgba(255, 255, 255, ${opacity * 0.6})`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  // --- Ethereal glass reflection overlay ---
   const gradient1 = ctx.createLinearGradient(0, 0, width, height);
-  gradient1.addColorStop(0, `rgba(255, 255, 255, ${0.08 * reflectIntensity})`);
-  gradient1.addColorStop(0.25, `rgba(200, 230, 255, ${0.04 * reflectIntensity})`);
-  gradient1.addColorStop(0.5, `rgba(180, 200, 255, ${0.06 * reflectIntensity})`);
-  gradient1.addColorStop(0.75, `rgba(255, 255, 255, ${0.03 * reflectIntensity})`);
-  gradient1.addColorStop(1, `rgba(200, 220, 255, ${0.07 * reflectIntensity})`);
+  gradient1.addColorStop(0, `rgba(255, 255, 255, ${0.06 * reflectIntensity})`);
+  gradient1.addColorStop(0.25, `rgba(200, 230, 255, ${0.03 * reflectIntensity})`);
+  gradient1.addColorStop(0.5, `rgba(180, 200, 255, ${0.04 * reflectIntensity})`);
+  gradient1.addColorStop(0.75, `rgba(255, 255, 255, ${0.02 * reflectIntensity})`);
+  gradient1.addColorStop(1, `rgba(200, 220, 255, ${0.05 * reflectIntensity})`);
   ctx.fillStyle = gradient1;
   ctx.fillRect(0, 0, width, height);
 
-  // Spirit mist overlay
+  // Spirit mist overlay (enhanced by focus on glass plane)
+  const mistStrength = lightIntensity * (0.5 + focusDist);
   const mistGradient = ctx.createRadialGradient(
     width * 0.7, height * 0.3, 0,
     width * 0.7, height * 0.3, width * 0.6
   );
-  mistGradient.addColorStop(0, `rgba(200, 220, 255, ${0.15 * lightIntensity})`);
-  mistGradient.addColorStop(0.5, `rgba(180, 200, 240, ${0.08 * lightIntensity})`);
+  mistGradient.addColorStop(0, `rgba(200, 220, 255, ${0.12 * mistStrength})`);
+  mistGradient.addColorStop(0.5, `rgba(180, 200, 240, ${0.06 * mistStrength})`);
   mistGradient.addColorStop(1, "transparent");
   ctx.fillStyle = mistGradient;
   ctx.fillRect(0, 0, width, height);
@@ -595,12 +701,15 @@ export function getLivePreviewFilter(mode: ImagingMode, settings: FilterSettings
         hue-rotate(${270 + settings.polarizationAngle}deg)
       `;
     case "reflection":
-    default:
+    default: {
+      const blurPx = (settings.focusDistance / 100) * 3;
       return `
         contrast(${1.1 + settings.shadowDepth / 150})
         brightness(${1.05 + settings.lightBleed / 200})
         saturate(${1.1 + settings.reflectionIntensity / 300})
+        blur(${blurPx}px)
       `;
+    }
   }
 }
 
@@ -640,17 +749,20 @@ export function getLivePreviewOverlay(mode: ImagingMode, settings: FilterSetting
         )
       `;
     case "reflection":
-    default:
+    default: {
+      const ri = settings.reflectionIntensity / 100;
+      const fd = settings.focusDistance / 100;
+      const panes = Math.max(1, Math.min(3, Math.round((settings.glassPanes ?? 50) / 33.4 + 1)));
+      // Layer multiple glass streaks per pane
+      const streaks = Array.from({ length: panes }, (_, p) => {
+        const angle = 120 + p * 30;
+        const o = 0.08 * ri * (0.5 + fd * 0.5);
+        return `linear-gradient(${angle}deg, rgba(255,255,255,${o}) 0%, rgba(220,235,255,${o * 0.4}) 30%, transparent 50%, rgba(200,220,255,${o * 0.3}) 70%, rgba(255,255,255,${o * 0.5}) 100%)`;
+      });
       return `
-        linear-gradient(
-          135deg,
-          rgba(255, 255, 255, ${0.12 * settings.reflectionIntensity / 100}) 0%,
-          rgba(200, 220, 255, ${0.08 * settings.reflectionIntensity / 100}) 20%,
-          transparent 40%,
-          rgba(180, 200, 255, ${0.06 * settings.reflectionIntensity / 100}) 60%,
-          rgba(255, 255, 255, ${0.1 * settings.reflectionIntensity / 100}) 80%,
-          rgba(200, 230, 255, ${0.08 * settings.reflectionIntensity / 100}) 100%
-        )
+        ${streaks.join(", ")},
+        radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,${0.15 * ri}) 100%)
       `;
+    }
   }
 }

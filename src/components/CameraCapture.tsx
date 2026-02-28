@@ -30,6 +30,8 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
   const [thermalSensitivity, setThermalSensitivity] = useState([70]);
   const [spectralBands, setSpectralBands] = useState([60]);
   const [polarizationAngle, setPolarizationAngle] = useState([45]);
+  const [focusDistance, setFocusDistance] = useState([50]);
+  const [glassPanes, setGlassPanes] = useState([50]);
 
   const getFilterSettings = useCallback(() => ({
     reflectionIntensity: reflectionIntensity[0],
@@ -38,7 +40,9 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
     thermalSensitivity: thermalSensitivity[0],
     spectralBands: spectralBands[0],
     polarizationAngle: polarizationAngle[0],
-  }), [reflectionIntensity, lightBleed, shadowDepth, thermalSensitivity, spectralBands, polarizationAngle]);
+    focusDistance: focusDistance[0],
+    glassPanes: glassPanes[0],
+  }), [reflectionIntensity, lightBleed, shadowDepth, thermalSensitivity, spectralBands, polarizationAngle, focusDistance, glassPanes]);
 
   const startCamera = useCallback(async () => {
     try {
@@ -301,6 +305,10 @@ export function CameraCapture({ onCapture, onClose }: CameraCaptureProps) {
           setSpectralBands={setSpectralBands}
           polarizationAngle={polarizationAngle}
           setPolarizationAngle={setPolarizationAngle}
+          focusDistance={focusDistance}
+          setFocusDistance={setFocusDistance}
+          glassPanes={glassPanes}
+          setGlassPanes={setGlassPanes}
         />
 
         {/* Action buttons */}

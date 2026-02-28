@@ -1,6 +1,6 @@
 import { Slider } from "@/components/ui/slider";
 import { ImagingMode } from "./ImagingModeSelector";
-import { Zap, Waves, Eye, Ghost } from "lucide-react";
+import { Zap, Waves, Eye, Ghost, Focus, Layers } from "lucide-react";
 
 interface FilterControlsProps {
   mode: ImagingMode;
@@ -16,6 +16,10 @@ interface FilterControlsProps {
   setSpectralBands: (value: number[]) => void;
   polarizationAngle: number[];
   setPolarizationAngle: (value: number[]) => void;
+  focusDistance: number[];
+  setFocusDistance: (value: number[]) => void;
+  glassPanes: number[];
+  setGlassPanes: (value: number[]) => void;
 }
 
 export function FilterControls({
@@ -32,19 +36,63 @@ export function FilterControls({
   setSpectralBands,
   polarizationAngle,
   setPolarizationAngle,
+  focusDistance,
+  setFocusDistance,
+  glassPanes,
+  setGlassPanes,
 }: FilterControlsProps) {
   if (mode === "reflection") {
+    const paneCount = Math.max(1, Math.min(3, Math.round(glassPanes[0] / 33.4 + 1)));
+    const focusLabel = focusDistance[0] < 30 ? "Background" : focusDistance[0] < 70 ? "Glass Plane" : "Foreground";
+    
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
           <Ghost className="w-3.5 h-3.5 text-primary" />
-          <span>Dimensional Breach Detection</span>
+          <span>Spirit Glass — Dimensional Breach Detection</span>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        
+        {/* Focus distance - the key new feature */}
+        <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+          <label className="text-xs text-foreground font-medium flex items-center gap-1.5">
+            <Focus className="w-3.5 h-3.5 text-primary" />
+            <span>Focus Point</span>
+            <span className="ml-auto text-primary font-semibold">{focusLabel}</span>
+          </label>
+          <Slider
+            value={focusDistance}
+            onValueChange={setFocusDistance}
+            max={100}
+            step={1}
+            className="w-full"
+          />
+          <p className="text-[10px] text-muted-foreground/70">
+            Focus between camera & subject — midpoint reveals what's on the glass
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {/* Glass panes */}
+          <div className="space-y-2">
+            <label className="text-xs text-muted-foreground flex items-center gap-1">
+              <Layers className="w-3 h-3" />
+              <span>Glass Panes</span>
+              <span className="text-primary font-medium ml-auto">{paneCount}</span>
+            </label>
+            <Slider
+              value={glassPanes}
+              onValueChange={setGlassPanes}
+              max={100}
+              step={1}
+              className="w-full"
+            />
+          </div>
+
+          {/* Mirror plane */}
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground flex items-center gap-1">
               <span>Mirror Plane</span>
-              <span className="text-primary font-medium">{reflectionIntensity[0]}%</span>
+              <span className="text-primary font-medium ml-auto">{reflectionIntensity[0]}%</span>
             </label>
             <Slider
               value={reflectionIntensity}
@@ -55,10 +103,11 @@ export function FilterControls({
             />
           </div>
           
+          {/* Light bleed */}
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground flex items-center gap-1">
               <span>Light Bleed</span>
-              <span className="text-primary font-medium">{lightBleed[0]}%</span>
+              <span className="text-primary font-medium ml-auto">{lightBleed[0]}%</span>
             </label>
             <Slider
               value={lightBleed}
@@ -69,10 +118,11 @@ export function FilterControls({
             />
           </div>
           
+          {/* Shadow depth */}
           <div className="space-y-2">
             <label className="text-xs text-muted-foreground flex items-center gap-1">
               <span>Shadow Realm</span>
-              <span className="text-primary font-medium">{shadowDepth[0]}%</span>
+              <span className="text-primary font-medium ml-auto">{shadowDepth[0]}%</span>
             </label>
             <Slider
               value={shadowDepth}
@@ -84,7 +134,7 @@ export function FilterControls({
           </div>
         </div>
         <p className="text-xs text-muted-foreground/70 mt-1">
-          Reveals spirits hiding in reflections and dimensional overlaps
+          Simulates looking through glass panes — reveals spirits in reflections & dimensional overlaps
         </p>
       </div>
     );
