@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { 
   BookOpen, ChevronLeft, Ghost, Shield, Calendar, 
   TrendingUp, Eye, AlertTriangle, Star, Filter,
-  Clock, Sparkles
+  Clock, Sparkles, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +68,7 @@ const SpiritJournal = () => {
   const [selectedScan, setSelectedScan] = useState<SpiritScan | null>(null);
   const [selectedFinding, setSelectedFinding] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [filter, setFilter] = useState<"all" | "entities" | "warnings">("all");
 
   useEffect(() => {
@@ -113,6 +114,31 @@ const SpiritJournal = () => {
       console.error("Error fetching scans:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    if (!deviceId || exporting) return;
+    setExporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("export-csv", {
+        body: { deviceId },
+      });
+      if (error) throw error;
+      
+      const blob = new Blob([data], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `spirit-vision-export-${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed:", err);
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -166,14 +192,28 @@ const SpiritJournal = () => {
 
       <div className="relative z-10 container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-2 rounded-full bg-accent/10 border border-accent/20">
-            <BookOpen className="w-6 h-6 text-accent" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-accent/10 border border-accent/20">
+              <BookOpen className="w-6 h-6 text-accent" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Spirit Journal</h1>
+              <p className="text-sm text-muted-foreground">Track your spiritual encounters</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Spirit Journal</h1>
-            <p className="text-sm text-muted-foreground">Track your spiritual encounters</p>
-          </div>
+          {scans.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCsv}
+              disabled={exporting}
+              className="gap-2"
+            >
+              <Download className="w-4 h-4" />
+              {exporting ? "Exporting..." : "Export CSV"}
+            </Button>
+          )}
         </div>
 
         {/* Stats Overview */}
