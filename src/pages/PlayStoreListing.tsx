@@ -68,105 +68,91 @@ const Section = ({
 
 const APP_TITLE = "Spirit Vision – Ghost & Entity Scanner";
 
-const SHORT_DESCRIPTION = `Detect spirits, ghosts & entities hidden in your photos using AI analysis.`;
+const SHORT_DESCRIPTION = `Scan photos for ghosts, spirits & entities with AI thermal & energy detection.`;
 
-const FULL_DESCRIPTION = `👁️ SPIRIT VISION — SEE BEYOND THE VEIL
+const FULL_DESCRIPTION = `👁️ SPIRIT VISION — THE #1 AI GHOST DETECTOR & SPIRIT SCANNER
 
-Do you feel a presence you can't explain? Spirit Vision uses cutting-edge AI to analyze your photos and reveal the hidden spiritual world around you — entities, angels, demons, shadow figures, and interdimensional beings lurking just beyond ordinary sight.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🔍 WHAT SPIRIT VISION DOES
-
-Simply upload a photo or take one with your camera. Our advanced AI scans every pixel, analyzing energy patterns, light anomalies, and spiritual signatures to identify:
-
-• 👻 Ghosts & residual spirits
-• 😇 Guardian angels & benevolent beings
-• 😈 Shadow entities & demonic presences
-• 🌀 Interdimensional visitors
-• ⚡ Aura energy fields & dimensional thinning
-• 📍 Entity locations mapped directly on your photo
+Ever felt an unexplainable presence? Spirit Vision is the most advanced ghost detector and paranormal scanner app available. Using AI-powered thermal imaging, energy field analysis, and spectral detection, it reveals ghosts, spirits, entities, and supernatural anomalies hidden in your photos.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-✨ FEATURES
+🔬 HOW IT WORKS
 
-🕵️ AI Spirit Scanner
-Upload any photo and receive a full spiritual analysis in seconds. Our AI identifies entity types, confidence levels, locations, and whether they pose a threat.
+Point your camera or upload any photo. Spirit Vision's AI analyzes every pixel using four powerful scanning modes:
 
-🛡️ Protection Guidance
-Receive personalized spiritual protection recommendations based on what was detected in your environment.
-
-🎨 Entity Sketch Generator
-Transform detected entities into hand-drawn-style sketches — see the faces of the spirits that surround you.
-
-📖 Spirit Journal
-Keep a personal log of all your scans and spiritual encounters over time.
-
-📚 Entity Bestiary
-Explore our encyclopedic database of entity types, their behaviors, powers, and how to deal with them.
-
-🔮 Psychic Portal (Boosted)
-Chat with our AI psychic medium for deeper guidance on your spiritual encounters.
-
-🔢 Numerology Chart (Boosted)
-Discover the hidden meaning in numbers that govern your spiritual path.
-
-🃏 Daily Tarot Pull (Boosted)
-Receive a daily tarot reading to guide your spiritual journey.
-
-🖼️ Sketch Gallery (Boosted)
-Browse and revisit all entity sketches you've generated.
+📷 Spirit Glass — Reflection-based filter that reveals entities hiding in glass, mirrors, and reflective surfaces
+🔥 Thermal Scan — Detects heat anomalies, cold spots, and energy disturbances like a real thermal camera
+🌈 Hyperspectral — Separates light wavelengths to expose hidden spectral signatures
+🔬 Polarimetric — Reveals surface stress patterns and hidden structures invisible to the naked eye
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-💎 SUBSCRIPTION PLANS
+👻 WHAT IT DETECTS
 
-🆓 Free
-• 5 spirit scans
-• Basic entity detection
-• Energy reading overview
+• Ghosts & residual spirits trapped between worlds
+• Guardian angels & benevolent light beings
+• Shadow entities & dark presences
+• Interdimensional visitors & portal activity
+• Aura energy fields & spiritual signatures
+• Dimensional thinning & paranormal hotspots
+• Fog, smoke & mist anomalies enhanced by AI
 
-⚡ Boosted — $1/month
-• Unlimited spirit scans
-• Full spiritual analysis & guidance
-• Entity sketch generation
-• Psychic Portal, Numerology & Tarot
-• Sketch Gallery access
-
-✨ Premium — $5/month
-• Everything in Boosted
-• Priority AI processing
-• Advanced entity analysis
-• Historical scan archive
-• Exclusive ritual guides
-• Priority support & early access
+Each entity is pinpointed on your photo with confidence levels, threat assessment, and spiritual guidance.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-❓ FREQUENTLY ASKED QUESTIONS
+⚡ POWERFUL FEATURES
 
-Is this app accurate?
-Spirit Vision uses AI pattern recognition and spiritual frequency analysis to detect anomalies. Results are intended for entertainment, spiritual exploration, and personal growth.
+🕵️ AI Spirit Scanner — Full paranormal analysis in seconds. Detects entity types, locations, power levels, and intent.
 
-Can I cancel my subscription?
-Yes! Cancel anytime through your Google Play subscription settings — no questions asked.
+🔥 Thermal & Energy Camera — Real-time filters that highlight fog, smoke, and energy disturbances with a glowing halo effect.
 
-Does it work with any photo?
-Yes! Use photos from your camera roll, take new ones directly in the app, or use any image you believe may contain spiritual energy.
+🎨 Entity Sketch Generator — AI transforms detected spirits into haunting hand-drawn Victorian-style illustrations.
+
+📖 Spirit Journal — Track every scan and encounter. Build your personal paranormal investigation log.
+
+📚 Entity Encyclopedia — 50+ entity types documented with behaviors, powers, weaknesses, and protection methods.
+
+🛡️ Protection Guidance — Personalized spiritual defense recommendations based on detected threats.
+
+🔮 Psychic Chat Portal — Consult our AI psychic medium about your encounters and spiritual questions.
+
+🔢 Numerology Chart — Decode the hidden numbers shaping your spiritual destiny.
+
+🃏 Daily Tarot — Receive a daily card pull with deep mystical interpretation.
+
+🖼️ Sketch Gallery — Browse and share all your generated entity portraits.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+💎 PLANS & PRICING
+
+🆓 Free — 5 spirit scans, basic entity detection, energy overview
+⚡ Boosted ($1/mo) — Unlimited scans, entity sketches, psychic portal, tarot & numerology
+✨ Premium ($5/mo) — Everything + priority AI, advanced analysis, ritual guides, early access
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 WHY SPIRIT VISION?
+
+✅ Most advanced AI ghost detection technology
+✅ 4 unique camera scanning modes
+✅ Real disturbance & anomaly enhancement
+✅ Beautiful entity sketch artwork
+✅ Complete paranormal investigation toolkit
+✅ Works with any photo — old or new
+✅ No account required — scan instantly
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ⚠️ DISCLAIMER
-Spirit Vision is designed for entertainment, spiritual exploration, and personal enrichment purposes. Results should be interpreted as spiritual guidance, not scientific fact.
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Spirit Vision is designed for entertainment, spiritual exploration, and personal enrichment. Results are AI-generated interpretations, not scientific measurements.
 
 📧 Support: support@spiritvision.app
 🌐 Website: https://gentle-handshake.lovable.app
-🔒 Privacy Policy: https://gentle-handshake.lovable.app/privacy-policy`;
+🔒 Privacy: https://gentle-handshake.lovable.app/privacy-policy`;
 
-const KEYWORDS = `ghost detector, spirit scanner, paranormal, entity detection, ghost camera, spirit photo, aura reader, ghost hunting, paranormal investigation, ghost finder, spiritual app, entity scanner, supernatural detector, ghost app, spirit world, angel detector, demon detector, psychic, tarot, numerology, ghost radar, EVP, haunted, spirit communication, paranormal app, ghost tracker, spiritual guide, aura camera, energy scanner, ghost hunter`;
+const KEYWORDS = `ghost detector, ghost detector app, spirit scanner, paranormal scanner, ghost camera, ghost hunting app, spirit photo analyzer, ghost finder, entity detector, supernatural scanner, ghost tracker, paranormal investigation app, ghost radar, spirit world app, angel detector, shadow entity, demon detector, haunted house detector, EVP detector, ghost hunting equipment, aura reader app, energy scanner, thermal ghost camera, psychic app, tarot reading app, numerology app, spirit communication, paranormal activity detector, ghost sensor, spiritual scanner`;
 
 const CATEGORY_INFO = `Primary Category: Entertainment
 Secondary Category: Lifestyle
