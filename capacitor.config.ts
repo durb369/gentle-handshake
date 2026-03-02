@@ -19,6 +19,9 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
+    Camera: {
+      permissionRequestMessage: 'Spirit Vision needs camera access to scan for spiritual entities and energy fields.',
+    },
     Keyboard: {
       resize: 'body',
       resizeOnFullScreen: true,
