@@ -73,9 +73,38 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    logStep("Calling Lovable AI image generation");
+    // Build the artistic sketch prompt from entity data
+    const styleGuide = sanitized.entityType.toLowerCase().includes("angel") || sanitized.entityType.toLowerCase().includes("guardian")
+      ? "illuminated manuscript style with gold leaf accents and sacred geometry halos"
+      : sanitized.entityType.toLowerCase().includes("shadow") || sanitized.entityType.toLowerCase().includes("dark")
+      ? "dark ink-wash illustration with heavy chiaroscuro and smoky tendrils"
+      : sanitized.entityType.toLowerCase().includes("ancestor") || sanitized.entityType.toLowerCase().includes("spirit")
+      ? "sepia-toned daguerreotype with Victorian spirit photography aesthetic"
+      : "Dark Renaissance occult illustration with parchment texture and candlelight atmosphere";
+
+    const sketchPrompt = [
+      `Create a hand-drawn artistic sketch of a supernatural entity: "${sanitized.entityType}".`,
+      `Description: ${sanitized.entityDescription}.`,
+      sanitized.intent ? `This entity has a ${sanitized.intent} intent.` : "",
+      sanitized.powerLevel ? `Power level: ${sanitized.powerLevel}.` : "",
+      `Art style: ${styleGuide}.`,
+      "The sketch should look like it was drawn by a paranormal investigator in their field journal.",
+      "Use dramatic chiaroscuro lighting, fine crosshatching, and sacred geometry motifs.",
+      "The entity should appear ethereal and otherworldly, partially materialized from smoke or mist.",
+      "No text or labels in the image."
+    ].filter(Boolean).join(" ");
+
+    logStep("Calling Lovable AI image generation", { promptLength: sketchPrompt.length });
 
     const imagePrompt = sketchPrompt.substring(0, 3900);
+
+    // Build messages - include source image if available for image-to-image
+    const userContent = sourceImageUrl
+      ? [
+          { type: "text", text: `Transform this image into an artistic supernatural sketch. ${imagePrompt}` },
+          { type: "image_url", image_url: { url: sourceImageUrl } },
+        ]
+      : `Generate an image based on this description. Return ONLY the image, no text:\n\n${imagePrompt}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -85,12 +114,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-3-pro-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: `Generate an image based on this description. Return ONLY the image, no text:\n\n${imagePrompt}`,
-          },
-        ],
+        messages: [{ role: "user", content: userContent }],
+        modalities: ["image", "text"],
       }),
     });
 
@@ -108,27 +133,34 @@ serve(async (req) => {
 
     const data = await response.json();
     
-    // Extract image from Gemini image response
-    const content = data.choices?.[0]?.message?.content;
+    // Extract image from response
     let b64Image: string | null = null;
+    const message = data.choices?.[0]?.message;
     
-    // Check if response contains inline_data (base64 image)
-    const parts = data.choices?.[0]?.message?.parts;
-    if (parts) {
-      for (const part of parts) {
-        if (part.inline_data?.data) {
-          b64Image = part.inline_data.data;
-          break;
+    // Check for images array (standard Lovable AI response format)
+    if (message?.images?.[0]?.image_url?.url) {
+      const imgUrl = message.images[0].image_url.url;
+      const match = imgUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
+      if (match) b64Image = match[1];
+    }
+    
+    // Fallback: check inline_data parts
+    if (!b64Image) {
+      const parts = message?.parts;
+      if (parts) {
+        for (const part of parts) {
+          if (part.inline_data?.data) {
+            b64Image = part.inline_data.data;
+            break;
+          }
         }
       }
     }
     
-    // Fallback: check if content itself is base64 or contains a data URL
-    if (!b64Image && content) {
-      const dataUrlMatch = content.match(/data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)/);
-      if (dataUrlMatch) {
-        b64Image = dataUrlMatch[1];
-      }
+    // Fallback: check content for data URL
+    if (!b64Image && message?.content) {
+      const dataUrlMatch = message.content.match(/data:image\/[^;]+;base64,([A-Za-z0-9+/=]+)/);
+      if (dataUrlMatch) b64Image = dataUrlMatch[1];
     }
 
     if (!b64Image) {
