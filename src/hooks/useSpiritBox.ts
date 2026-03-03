@@ -144,20 +144,34 @@ export function useSpiritBox() {
       });
     }, 200);
 
-    // Fetch spirit words periodically (every 4-8 seconds)
+    // Sporadic word fetching - varies between silence and bursts
     const fetchInterval = () => {
-      const delay = 4000 + Math.random() * 4000;
+      // Randomize delay: sometimes long silence (8-20s), sometimes quick bursts (2-4s)
+      const roll = Math.random();
+      let delay: number;
+      if (roll < 0.3) {
+        // Long silence - nothing for a while
+        delay = 8000 + Math.random() * 12000; // 8-20 seconds
+      } else if (roll < 0.6) {
+        // Medium gap
+        delay = 5000 + Math.random() * 5000; // 5-10 seconds
+      } else {
+        // Quick burst - words come fast
+        delay = 2000 + Math.random() * 2000; // 2-4 seconds
+      }
+
       wordIntervalRef.current = setTimeout(() => {
         fetchSpiritWords();
         if (scanIntervalRef.current) fetchInterval();
       }, delay) as unknown as ReturnType<typeof setInterval>;
     };
 
-    // Initial fetch after 2 seconds
+    // Initial fetch after 3-6 seconds (don't always start immediately)
+    const initialDelay = 3000 + Math.random() * 3000;
     wordIntervalRef.current = setTimeout(() => {
       fetchSpiritWords();
       fetchInterval();
-    }, 2000) as unknown as ReturnType<typeof setInterval>;
+    }, initialDelay) as unknown as ReturnType<typeof setInterval>;
   }, [fetchSpiritWords]);
 
   const stopScanning = useCallback(() => {
@@ -189,6 +203,13 @@ export function useSpiritBox() {
     }
   }, []);
 
+  const setTone = useCallback((tone: number) => {
+    // tone: 0-100, maps to filter frequency 400-6000 Hz
+    if (sourceRef.current?.filter) {
+      sourceRef.current.filter.frequency.value = 400 + (tone / 100) * 5600;
+    }
+  }, []);
+
   const clearLog = useCallback(() => {
     setState(prev => ({ ...prev, words: [] }));
   }, []);
@@ -206,6 +227,7 @@ export function useSpiritBox() {
     stopScanning,
     setScanSpeed,
     setVolume,
+    setTone,
     clearLog,
     updateFrequency,
   };

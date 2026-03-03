@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Radio, Power, Volume2, Gauge, Trash2, ChevronDown, ChevronUp, Zap, Save, History, Clock, X, Loader2 } from "lucide-react";
+import { Radio, Power, Volume2, Gauge, Trash2, ChevronDown, ChevronUp, Zap, Save, History, Clock, X, Loader2, AudioLines } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
@@ -299,12 +299,13 @@ function SessionViewer({ session, onClose }: { session: SpiritBoxSession; onClos
 export default function SpiritBox() {
   const {
     isScanning, currentFrequency, scanSpeed, words, signalStrength,
-    startScanning, stopScanning, setScanSpeed, setVolume, clearLog,
+    startScanning, stopScanning, setScanSpeed, setVolume, setTone, clearLog,
   } = useSpiritBox();
 
   const { sessions, loading, saving, fetchSessions, saveSession, deleteSession } = useSpiritBoxSessions();
 
   const [volume, setVolumeState] = useState(50);
+  const [tone, setToneState] = useState(30);
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   const [viewingSession, setViewingSession] = useState<SpiritBoxSession | null>(null);
 
@@ -326,6 +327,11 @@ export default function SpiritBox() {
   const handleVolumeChange = (val: number[]) => {
     setVolumeState(val[0]);
     setVolume(val[0] / 100);
+  };
+
+  const handleToneChange = (val: number[]) => {
+    setToneState(val[0]);
+    setTone(val[0]);
   };
 
   useEffect(() => {
@@ -416,6 +422,17 @@ export default function SpiritBox() {
                 <span className="text-xs font-mono text-primary">{volume}%</span>
               </div>
               <Slider value={[volume]} onValueChange={handleVolumeChange} min={0} max={100} step={1} className="cursor-pointer" />
+            </div>
+
+            {/* Tone / Frequency */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <AudioLines className="w-4 h-4" />Tone
+                </div>
+                <span className="text-xs font-mono text-primary">{tone < 33 ? "Low" : tone < 66 ? "Mid" : "High"}</span>
+              </div>
+              <Slider value={[tone]} onValueChange={handleToneChange} min={0} max={100} step={1} className="cursor-pointer" />
             </div>
           </div>
 
