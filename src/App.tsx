@@ -15,6 +15,7 @@ import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import PlayStoreListing from "./pages/PlayStoreListing";
 import FortuneTeller from "./pages/FortuneTeller";
+import SpiritBox from "./pages/SpiritBox";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { AppLayout } from "@/components/layout/AppLayout";
 
@@ -59,6 +60,7 @@ const App = () => {
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/play-store-listing" element={<PlayStoreListing />} />
                 <Route path="/fortune-teller" element={<FortuneTeller />} />
+                <Route path="/spirit-box" element={<SpiritBox />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AppLayout>

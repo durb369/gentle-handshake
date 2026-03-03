@@ -1,14 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
-import { Eye, BookOpen, Book, Sparkles, CreditCard } from "lucide-react";
+import { Eye, BookOpen, Book, Sparkles, Radio } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 const navItems = [
   { path: "/", icon: Eye, label: "Scan" },
+  { path: "/spirit-box", icon: Radio, label: "Spirit Box" },
   { path: "/journal", icon: BookOpen, label: "Journal" },
   { path: "/encyclopedia", icon: Book, label: "Bestiary" },
   { path: "/fortune-teller", icon: Sparkles, label: "Fortune" },
-  { path: "/pricing", icon: CreditCard, label: "Plans" },
 ];
 
 export function BottomNav() {
