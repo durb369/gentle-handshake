@@ -44,9 +44,24 @@ serve(async (req) => {
       : frequency < 104 ? "high FM band – angelic frequencies, light beings"
       : "ultra-high band – interdimensional whispers, shadow entities";
 
+    // Randomly vary how many words to generate for natural feel
+    const wordRoll = Math.random();
+    let wordInstruction: string;
+    if (wordRoll < 0.25) {
+      wordInstruction = "Generate exactly 0 words — total silence, nothing comes through. Return {\"words\": []}";
+    } else if (wordRoll < 0.55) {
+      wordInstruction = "Generate exactly 1 short spirit word or fragment (1-2 words max).";
+    } else if (wordRoll < 0.8) {
+      wordInstruction = "Generate 2-3 short spirit communication words or fragments (1-3 words max each).";
+    } else {
+      wordInstruction = "Generate 3-5 spirit communication words forming a fragmented conversation or message. Mix single words with short phrases (1-4 words each).";
+    }
+
     const prompt = `You are a supernatural spirit box radio receiver tuned to ${frequency?.toFixed(1) || "95.0"} MHz (${freqBand}).
 
-Generate 1-3 short spirit communication words or fragments that might come through at this frequency. These should feel like fragmentary, eerie, cryptic messages from beyond — single words or very short phrases (1-3 words max each).
+${wordInstruction}
+
+These should feel like fragmentary, eerie, cryptic messages from beyond.
 
 The messages should vary between:
 - Names or partial names
@@ -55,7 +70,7 @@ The messages should vary between:
 - Cryptic references ("three", "the door", "water")
 - Occasional longer whispers
 
-For each word, rate the intensity: "faint" (barely audible), "clear" (distinct), or "strong" (unmistakable).
+For each word, rate the intensity: "faint" (barely audible), "clear" (distinct), or "strong" (unmistakable). Most should be faint.
 
 Respond ONLY with valid JSON:
 {"words": [{"word": "example", "intensity": "faint"}]}`;
