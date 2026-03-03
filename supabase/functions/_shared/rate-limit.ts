@@ -10,6 +10,8 @@ export const RATE_LIMITS = {
   "numerology-reading": { maxCount: 10, windowSeconds: 3600 }, // 10 per hour
   "create-checkout": { maxCount: 5, windowSeconds: 3600 }, // 5 per hour
   "check-subscription": { maxCount: 30, windowSeconds: 3600 }, // 30 per hour
+  "spirit-box": { maxCount: 120, windowSeconds: 3600 }, // 120 per hour
+  "spirit-box-sessions": { maxCount: 30, windowSeconds: 3600 }, // 30 per hour
 } as const;
 
 export type RateLimitAction = keyof typeof RATE_LIMITS;
