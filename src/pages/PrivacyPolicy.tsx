@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 
 const PrivacyPolicy = () => {
   const lastUpdated = "February 20, 2026";
-  const appName = "Spirit Vision";
+  const appName = "Spirit Vision™";
   const contactEmail = "support@spiritvision.app";
 
   return (
