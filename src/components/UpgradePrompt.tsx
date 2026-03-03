@@ -43,7 +43,7 @@ export function UpgradePrompt({ onUpgrade, variant = "inline", featureName }: Up
             <Crown className="w-8 h-8 text-amber-400" />
           </div>
           <div>
-            <h3 className="text-2xl font-bold text-foreground">Spirit Vision Boosted</h3>
+            <h3 className="text-2xl font-bold text-foreground">Spirit Vision™ Boosted</h3>
             <p className="text-muted-foreground">Unlock the full power of spiritual sight</p>
           </div>
         </div>

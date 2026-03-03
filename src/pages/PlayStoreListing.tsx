@@ -70,15 +70,15 @@ const APP_TITLE = "Spirit Vision – Ghost & Entity Scanner";
 
 const SHORT_DESCRIPTION = `Scan photos for ghosts, spirits & entities with AI thermal & energy detection.`;
 
-const FULL_DESCRIPTION = `👁️ SPIRIT VISION — THE #1 AI GHOST DETECTOR & SPIRIT SCANNER
+const FULL_DESCRIPTION = `👁️ SPIRIT VISION™ — THE #1 AI GHOST DETECTOR & SPIRIT SCANNER
 
-Ever felt an unexplainable presence? Spirit Vision is the most advanced ghost detector and paranormal scanner app available. Using AI-powered thermal imaging, energy field analysis, and spectral detection, it reveals ghosts, spirits, entities, and supernatural anomalies hidden in your photos.
+Ever felt an unexplainable presence? Spirit Vision™ is the most advanced ghost detector and paranormal scanner app available. Using AI-powered thermal imaging, energy field analysis, and spectral detection, it reveals ghosts, spirits, entities, and supernatural anomalies hidden in your photos.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🔬 HOW IT WORKS
 
-Point your camera or upload any photo. Spirit Vision's AI analyzes every pixel using four powerful scanning modes:
+Point your camera or upload any photo. Spirit Vision™'s AI analyzes every pixel using four powerful scanning modes:
 
 📷 Spirit Glass — Reflection-based filter that reveals entities hiding in glass, mirrors, and reflective surfaces
 🔥 Thermal Scan — Detects heat anomalies, cold spots, and energy disturbances like a real thermal camera
@@ -133,7 +133,7 @@ Each entity is pinpointed on your photo with confidence levels, threat assessmen
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🏆 WHY SPIRIT VISION?
+🏆 WHY SPIRIT VISION™?
 
 ✅ Most advanced AI ghost detection technology
 ✅ 4 unique camera scanning modes
@@ -146,7 +146,7 @@ Each entity is pinpointed on your photo with confidence levels, threat assessmen
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ⚠️ DISCLAIMER
-Spirit Vision is designed for entertainment, spiritual exploration, and personal enrichment. Results are AI-generated interpretations, not scientific measurements.
+Spirit Vision™ is designed for entertainment, spiritual exploration, and personal enrichment. Results are AI-generated interpretations, not scientific measurements.
 
 📧 Support: support@spiritvision.app
 🌐 Website: https://gentle-handshake.lovable.app
@@ -288,7 +288,7 @@ const PlayStoreListing = () => {
 
         {/* Footer */}
         <div className="mt-8 pt-6 border-t border-border/30 text-center text-muted-foreground text-sm">
-          <p>Spirit Vision — Google Play Store Listing Reference</p>
+          <p>Spirit Vision™ — Google Play Store Listing Reference</p>
         </div>
       </div>
     </div>
