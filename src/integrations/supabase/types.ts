@@ -147,6 +147,39 @@ export type Database = {
           },
         ]
       }
+      spirit_box_sessions: {
+        Row: {
+          created_at: string
+          device_id: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          started_at: string
+          word_count: number
+          words: Json
+        }
+        Insert: {
+          created_at?: string
+          device_id: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          word_count?: number
+          words?: Json
+        }
+        Update: {
+          created_at?: string
+          device_id?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          word_count?: number
+          words?: Json
+        }
+        Relationships: []
+      }
       spirit_scans: {
         Row: {
           created_at: string

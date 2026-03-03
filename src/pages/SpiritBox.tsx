@@ -1,17 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Radio, Power, Volume2, Gauge, Trash2, ChevronDown, ChevronUp, Zap } from "lucide-react";
+import { Radio, Power, Volume2, Gauge, Trash2, ChevronDown, ChevronUp, Zap, Save, History, Clock, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import { useSpiritBox, type SpiritWord } from "@/hooks/useSpiritBox";
+import { useSpiritBoxSessions, type SpiritBoxSession } from "@/hooks/useSpiritBoxSessions";
+import { formatDistanceToNow, format } from "date-fns";
 
 function FrequencyDisplay({ frequency, isScanning }: { frequency: number; isScanning: boolean }) {
   return (
     <div className="relative w-full max-w-md mx-auto">
-      {/* LED display */}
       <div className="bg-black/80 border-2 border-primary/40 rounded-xl p-6 font-mono text-center relative overflow-hidden">
-        {/* Scan line effect */}
         {isScanning && (
           <motion.div
             className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent"
@@ -19,10 +19,7 @@ function FrequencyDisplay({ frequency, isScanning }: { frequency: number; isScan
             transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
           />
         )}
-
-        <div className="text-xs text-muted-foreground uppercase tracking-widest mb-2">
-          FM Frequency
-        </div>
+        <div className="text-xs text-muted-foreground uppercase tracking-widest mb-2">FM Frequency</div>
         <div className={cn(
           "text-5xl md:text-6xl font-bold tracking-wider transition-colors",
           isScanning ? "text-primary drop-shadow-[0_0_20px_hsl(175_70%_45%/0.6)]" : "text-muted-foreground/50"
@@ -30,8 +27,6 @@ function FrequencyDisplay({ frequency, isScanning }: { frequency: number; isScan
           {frequency.toFixed(1)}
         </div>
         <div className="text-xs text-muted-foreground mt-1">MHz</div>
-
-        {/* Frequency bar */}
         <div className="mt-4 h-2 bg-muted/30 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full"
@@ -60,9 +55,7 @@ function SignalMeter({ strength, isScanning }: { strength: number; isScanning: b
             key={i}
             className={cn(
               "w-2 rounded-sm transition-colors",
-              active
-                ? i < 4 ? "bg-emerald-500" : i < 8 ? "bg-amber-500" : "bg-red-500"
-                : "bg-muted/20"
+              active ? i < 4 ? "bg-emerald-500" : i < 8 ? "bg-amber-500" : "bg-red-500" : "bg-muted/20"
             )}
             style={{ height: `${((i + 1) / bars) * 100}%` }}
             animate={active ? { opacity: [0.7, 1, 0.7] } : { opacity: 0.3 }}
@@ -87,7 +80,12 @@ function WordIntensityBadge({ intensity }: { intensity: SpiritWord["intensity"] 
   );
 }
 
-function WordLog({ words, onClear }: { words: SpiritWord[]; onClear: () => void }) {
+function WordLog({ words, onClear, title, emptyMessage }: {
+  words: SpiritWord[];
+  onClear?: () => void;
+  title?: string;
+  emptyMessage?: string;
+}) {
   const [expanded, setExpanded] = useState(true);
 
   return (
@@ -98,11 +96,11 @@ function WordLog({ words, onClear }: { words: SpiritWord[]; onClear: () => void 
       >
         <div className="flex items-center gap-2">
           <Radio className="w-4 h-4 text-primary" />
-          <span className="font-semibold text-sm">Spirit Transcript</span>
+          <span className="font-semibold text-sm">{title || "Spirit Transcript"}</span>
           <span className="text-xs text-muted-foreground">({words.length} words)</span>
         </div>
         <div className="flex items-center gap-2">
-          {words.length > 0 && (
+          {onClear && words.length > 0 && (
             <Button
               variant="ghost"
               size="sm"
@@ -127,12 +125,12 @@ function WordLog({ words, onClear }: { words: SpiritWord[]; onClear: () => void 
             <div className="px-4 pb-4 max-h-80 overflow-y-auto space-y-2">
               {words.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-8 italic">
-                  No spirit communications received yet. Start scanning to listen...
+                  {emptyMessage || "No spirit communications received yet. Start scanning to listen..."}
                 </p>
               ) : (
-                words.map((word) => (
+                words.map((word, idx) => (
                   <motion.div
-                    key={word.id}
+                    key={word.id || idx}
                     initial={{ opacity: 0, x: -20, scale: 0.95 }}
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg bg-background/50 border border-border/50"
@@ -170,26 +168,169 @@ function WordLog({ words, onClear }: { words: SpiritWord[]; onClear: () => void 
   );
 }
 
+function SessionCard({ session, onView, onDelete }: {
+  session: SpiritBoxSession;
+  onView: () => void;
+  onDelete: () => void;
+}) {
+  const duration = session.duration_seconds
+    ? `${Math.floor(session.duration_seconds / 60)}m ${session.duration_seconds % 60}s`
+    : "Unknown";
+
+  const strongCount = (session.words as any[]).filter((w: any) => w.intensity === "strong").length;
+  const clearCount = (session.words as any[]).filter((w: any) => w.intensity === "clear").length;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-card/50 border border-border rounded-lg p-4 backdrop-blur-sm"
+    >
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <div className="text-sm font-semibold text-foreground">
+            {format(new Date(session.started_at), "MMM d, yyyy · h:mm a")}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {formatDistanceToNow(new Date(session.started_at), { addSuffix: true })}
+          </div>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onDelete} className="h-7 px-2 text-muted-foreground hover:text-destructive">
+          <Trash2 className="w-3 h-3" />
+        </Button>
+      </div>
+
+      <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
+        <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{duration}</span>
+        <span className="flex items-center gap-1"><Radio className="w-3 h-3" />{session.word_count} words</span>
+        {strongCount > 0 && <span className="text-red-400">{strongCount} strong</span>}
+        {clearCount > 0 && <span className="text-primary">{clearCount} clear</span>}
+      </div>
+
+      <Button variant="outline" size="sm" onClick={onView} className="w-full text-xs">
+        View Transcript
+      </Button>
+    </motion.div>
+  );
+}
+
+function SessionHistory({ sessions, loading, onView, onDelete, onRefresh }: {
+  sessions: SpiritBoxSession[];
+  loading: boolean;
+  onView: (s: SpiritBoxSession) => void;
+  onDelete: (id: string) => void;
+  onRefresh: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-card/50 border border-border rounded-xl overflow-hidden backdrop-blur-sm">
+      <button
+        onClick={() => { setExpanded(!expanded); if (!expanded) onRefresh(); }}
+        className="w-full flex items-center justify-between p-4 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <History className="w-4 h-4 text-primary" />
+          <span className="font-semibold text-sm">Saved Sessions</span>
+          <span className="text-xs text-muted-foreground">({sessions.length})</span>
+        </div>
+        {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+      </button>
+
+      <AnimatePresence>
+        {expanded && (
+          <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
+            <div className="px-4 pb-4 max-h-96 overflow-y-auto space-y-3">
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                </div>
+              ) : sessions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8 italic">
+                  No saved sessions yet. Record a scan to save it here.
+                </p>
+              ) : (
+                sessions.map(s => (
+                  <SessionCard key={s.id} session={s} onView={() => onView(s)} onDelete={() => onDelete(s.id)} />
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function SessionViewer({ session, onClose }: { session: SpiritBoxSession; onClose: () => void }) {
+  const words: SpiritWord[] = (session.words as any[]).map((w: any, i: number) => ({
+    id: `saved-${i}`,
+    word: w.word,
+    frequency: w.frequency || 0,
+    timestamp: new Date(w.timestamp || session.started_at),
+    intensity: w.intensity || "faint",
+  }));
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 bg-background/90 backdrop-blur-md flex flex-col"
+    >
+      <div className="flex items-center justify-between p-4 border-b border-border">
+        <div>
+          <h2 className="font-semibold text-foreground">Session Replay</h2>
+          <p className="text-xs text-muted-foreground">
+            {format(new Date(session.started_at), "MMM d, yyyy · h:mm a")} · {session.word_count} words
+          </p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4">
+        <WordLog words={words} title="Session Transcript" emptyMessage="This session had no words captured." />
+      </div>
+    </motion.div>
+  );
+}
+
 export default function SpiritBox() {
   const {
-    isScanning,
-    currentFrequency,
-    scanSpeed,
-    words,
-    signalStrength,
-    startScanning,
-    stopScanning,
-    setScanSpeed,
-    setVolume,
-    clearLog,
+    isScanning, currentFrequency, scanSpeed, words, signalStrength,
+    startScanning, stopScanning, setScanSpeed, setVolume, clearLog,
   } = useSpiritBox();
 
+  const { sessions, loading, saving, fetchSessions, saveSession, deleteSession } = useSpiritBoxSessions();
+
   const [volume, setVolumeState] = useState(50);
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+  const [viewingSession, setViewingSession] = useState<SpiritBoxSession | null>(null);
+
+  const handleStart = () => {
+    setSessionStartTime(new Date());
+    startScanning();
+  };
+
+  const handleStop = () => {
+    stopScanning();
+  };
+
+  const handleSave = async () => {
+    if (!sessionStartTime) return;
+    await saveSession(sessionStartTime, new Date(), words);
+    setSessionStartTime(null);
+  };
 
   const handleVolumeChange = (val: number[]) => {
     setVolumeState(val[0]);
     setVolume(val[0] / 100);
   };
+
+  useEffect(() => {
+    fetchSessions();
+  }, [fetchSessions]);
 
   return (
     <div className="min-h-screen bg-mystic-gradient relative overflow-hidden">
@@ -202,13 +343,9 @@ export default function SpiritBox() {
       )}
 
       <div className="relative z-10 container mx-auto px-4 py-8 md:py-12 pb-24">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <Radio className={cn(
-              "w-8 h-8 transition-colors",
-              isScanning ? "text-primary animate-pulse" : "text-muted-foreground"
-            )} />
+            <Radio className={cn("w-8 h-8 transition-colors", isScanning ? "text-primary animate-pulse" : "text-muted-foreground")} />
             <h1 className="text-3xl md:text-4xl font-bold text-foreground">Spirit Box</h1>
           </div>
           <p className="text-muted-foreground text-sm max-w-md mx-auto">
@@ -217,10 +354,8 @@ export default function SpiritBox() {
         </div>
 
         <div className="max-w-lg mx-auto space-y-6">
-          {/* Frequency Display */}
           <FrequencyDisplay frequency={currentFrequency} isScanning={isScanning} />
 
-          {/* Signal Meter */}
           <div className="text-center space-y-1">
             <div className="text-xs text-muted-foreground uppercase tracking-widest">Signal Strength</div>
             <SignalMeter strength={signalStrength} isScanning={isScanning} />
@@ -228,10 +363,9 @@ export default function SpiritBox() {
 
           {/* Controls */}
           <div className="bg-card/50 border border-border rounded-xl p-5 space-y-5 backdrop-blur-sm">
-            {/* Power Button */}
-            <div className="flex justify-center">
+            <div className="flex justify-center gap-4">
               <Button
-                onClick={isScanning ? stopScanning : startScanning}
+                onClick={isScanning ? handleStop : handleStart}
                 size="lg"
                 className={cn(
                   "rounded-full w-20 h-20 p-0 transition-all",
@@ -247,49 +381,64 @@ export default function SpiritBox() {
               {isScanning ? "Scanning... Tap to stop" : "Tap to start scanning"}
             </p>
 
+            {/* Save session button - show when stopped and has words */}
+            {!isScanning && words.length > 0 && sessionStartTime && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                <Button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="w-full bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30"
+                  variant="outline"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                  {saving ? "Saving Session..." : `Save Session (${words.length} words)`}
+                </Button>
+              </motion.div>
+            )}
+
             {/* Scan Speed */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Gauge className="w-4 h-4" />
-                  Scan Speed
+                  <Gauge className="w-4 h-4" />Scan Speed
                 </div>
                 <span className="text-xs font-mono text-primary">{scanSpeed}</span>
               </div>
-              <Slider
-                value={[scanSpeed]}
-                onValueChange={(v) => setScanSpeed(v[0])}
-                min={1}
-                max={10}
-                step={1}
-                className="cursor-pointer"
-              />
+              <Slider value={[scanSpeed]} onValueChange={(v) => setScanSpeed(v[0])} min={1} max={10} step={1} className="cursor-pointer" />
             </div>
 
             {/* Volume */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Volume2 className="w-4 h-4" />
-                  Volume
+                  <Volume2 className="w-4 h-4" />Volume
                 </div>
                 <span className="text-xs font-mono text-primary">{volume}%</span>
               </div>
-              <Slider
-                value={[volume]}
-                onValueChange={handleVolumeChange}
-                min={0}
-                max={100}
-                step={1}
-                className="cursor-pointer"
-              />
+              <Slider value={[volume]} onValueChange={handleVolumeChange} min={0} max={100} step={1} className="cursor-pointer" />
             </div>
           </div>
 
           {/* Word Log */}
           <WordLog words={words} onClear={clearLog} />
+
+          {/* Saved Sessions */}
+          <SessionHistory
+            sessions={sessions}
+            loading={loading}
+            onView={setViewingSession}
+            onDelete={deleteSession}
+            onRefresh={fetchSessions}
+          />
         </div>
       </div>
+
+      {/* Session Viewer Modal */}
+      <AnimatePresence>
+        {viewingSession && (
+          <SessionViewer session={viewingSession} onClose={() => setViewingSession(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
