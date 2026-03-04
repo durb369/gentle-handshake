@@ -4,11 +4,21 @@ import { Radio, Power, Volume2, Gauge, Trash2, ChevronDown, ChevronUp, Zap, Save
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
-import { useSpiritBox, type SpiritWord } from "@/hooks/useSpiritBox";
+import { useSpiritBox, type SpiritWord, type ScanMode } from "@/hooks/useSpiritBox";
 import { useSpiritBoxSessions, type SpiritBoxSession } from "@/hooks/useSpiritBoxSessions";
+import { ScanModeSelector } from "@/components/spirit-box/ScanModeSelector";
 import { formatDistanceToNow, format } from "date-fns";
 
-function FrequencyDisplay({ frequency, isScanning }: { frequency: number; isScanning: boolean }) {
+function FrequencyDisplay({ frequency, isScanning, mode }: { frequency: number; isScanning: boolean; mode: ScanMode }) {
+  const labels: Record<ScanMode, { label: string; unit: string; min: number; max: number }> = {
+    fm: { label: "FM Frequency", unit: "MHz", min: 87.5, max: 108.0 },
+    am: { label: "AM Frequency", unit: "kHz", min: 53.0, max: 170.0 },
+    whitenoise: { label: "Noise Density", unit: "%", min: 0, max: 100 },
+    evp: { label: "EVP Channel", unit: "MHz", min: 87.5, max: 108.0 },
+  };
+  const info = labels[mode];
+  const progress = ((frequency - info.min) / (info.max - info.min)) * 100;
+
   return (
     <div className="relative w-full max-w-md mx-auto">
       <div className="bg-black/80 border-2 border-primary/40 rounded-xl p-6 font-mono text-center relative overflow-hidden">
@@ -19,24 +29,24 @@ function FrequencyDisplay({ frequency, isScanning }: { frequency: number; isScan
             transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
           />
         )}
-        <div className="text-xs text-muted-foreground uppercase tracking-widest mb-2">FM Frequency</div>
+        <div className="text-xs text-muted-foreground uppercase tracking-widest mb-2">{info.label}</div>
         <div className={cn(
           "text-5xl md:text-6xl font-bold tracking-wider transition-colors",
           isScanning ? "text-primary drop-shadow-[0_0_20px_hsl(175_70%_45%/0.6)]" : "text-muted-foreground/50"
         )}>
-          {frequency.toFixed(1)}
+          {mode === "whitenoise" ? Math.round(frequency) : frequency.toFixed(1)}
         </div>
-        <div className="text-xs text-muted-foreground mt-1">MHz</div>
+        <div className="text-xs text-muted-foreground mt-1">{info.unit}</div>
         <div className="mt-4 h-2 bg-muted/30 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-r from-primary/50 via-primary to-primary/50 rounded-full"
-            style={{ width: `${((frequency - 87.5) / 20.5) * 100}%` }}
+            style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
             transition={{ duration: 0.1 }}
           />
         </div>
         <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-          <span>87.5</span>
-          <span>108.0</span>
+          <span>{info.min}</span>
+          <span>{info.max}</span>
         </div>
       </div>
     </div>
@@ -298,8 +308,8 @@ function SessionViewer({ session, onClose }: { session: SpiritBoxSession; onClos
 
 export default function SpiritBox() {
   const {
-    isScanning, currentFrequency, scanSpeed, words, signalStrength,
-    startScanning, stopScanning, setScanSpeed, setVolume, setTone, clearLog,
+    isScanning, currentFrequency, scanSpeed, words, signalStrength, scanMode,
+    startScanning, stopScanning, setScanSpeed, setScanMode, setVolume, setTone, clearLog,
   } = useSpiritBox();
 
   const { sessions, loading, saving, fetchSessions, saveSession, deleteSession } = useSpiritBoxSessions();
@@ -360,7 +370,7 @@ export default function SpiritBox() {
         </div>
 
         <div className="max-w-lg mx-auto space-y-6">
-          <FrequencyDisplay frequency={currentFrequency} isScanning={isScanning} />
+          <FrequencyDisplay frequency={currentFrequency} isScanning={isScanning} mode={scanMode} />
 
           <div className="text-center space-y-1">
             <div className="text-xs text-muted-foreground uppercase tracking-widest">Signal Strength</div>
@@ -369,6 +379,7 @@ export default function SpiritBox() {
 
           {/* Controls */}
           <div className="bg-card/50 border border-border rounded-xl p-5 space-y-5 backdrop-blur-sm">
+            <ScanModeSelector mode={scanMode} onChange={setScanMode} disabled={isScanning} />
             <div className="flex justify-center gap-4">
               <Button
                 onClick={isScanning ? handleStop : handleStart}
