@@ -19,7 +19,7 @@ serve(async (req) => {
   }
 
   try {
-    const { deviceId, frequency, scanSpeed } = await req.json();
+    const { deviceId, frequency, scanSpeed, scanMode } = await req.json();
 
     const deviceValidation = validateDeviceId(deviceId);
     if (!deviceValidation.valid) {
@@ -36,28 +36,67 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    logStep("Generating spirit words", { frequency, scanSpeed });
+    const mode = scanMode || "fm";
+    logStep("Generating spirit words", { frequency, scanSpeed, mode });
 
-    const freqBand =
-      frequency < 92 ? "low AM band – older spirits, ancestral voices"
-      : frequency < 98 ? "mid FM band – active entities, recent departed"
-      : frequency < 104 ? "high FM band – angelic frequencies, light beings"
-      : "ultra-high band – interdimensional whispers, shadow entities";
+    // Mode-specific flavor text
+    const modeContext: Record<string, string> = {
+      fm: `FM radio sweep at ${frequency?.toFixed(1) || "95.0"} MHz. ${
+        frequency < 92 ? "Low band – older spirits, ancestral voices"
+        : frequency < 98 ? "Mid band – active entities, recent departed"
+        : frequency < 104 ? "High band – angelic frequencies, light beings"
+        : "Ultra-high – interdimensional whispers, shadow entities"
+      }`,
+      am: `AM band sweep at ${frequency?.toFixed(1) || "100.0"} kHz. AM frequencies carry older, deeper transmissions — voices from decades past, crackling through time. Messages feel vintage, weathered, like old radio broadcasts bleeding through.`,
+      whitenoise: `Raw white noise field. No tuning — spirits must shape the chaos itself. Messages that come through white noise tend to be raw, primal, emotional. Single words punching through static.`,
+      evp: `EVP (Electronic Voice Phenomena) mode — ultra-quiet listening at ${frequency?.toFixed(1) || "95.0"} MHz. EVP captures are rare, whispered, and deeply personal. Messages are often single words or short whispers that feel directed at the listener. Most of the time, nothing comes through at all.`,
+    };
 
-    // Randomly vary how many words to generate for natural feel
+    // Word density varies by mode
     const wordRoll = Math.random();
     let wordInstruction: string;
-    if (wordRoll < 0.25) {
-      wordInstruction = "Generate exactly 0 words — total silence, nothing comes through. Return {\"words\": []}";
-    } else if (wordRoll < 0.55) {
-      wordInstruction = "Generate exactly 1 short spirit word or fragment (1-2 words max).";
-    } else if (wordRoll < 0.8) {
-      wordInstruction = "Generate 2-3 short spirit communication words or fragments (1-3 words max each).";
+
+    if (mode === "evp") {
+      // EVP: mostly silence, rare single words
+      if (wordRoll < 0.5) {
+        wordInstruction = "Generate exactly 0 words — total silence. Return {\"words\": []}";
+      } else if (wordRoll < 0.85) {
+        wordInstruction = "Generate exactly 1 whispered spirit word (1 word only). It should feel deeply personal and whispered.";
+      } else {
+        wordInstruction = "Generate 2 whispered words forming a short personal message.";
+      }
+    } else if (mode === "whitenoise") {
+      if (wordRoll < 0.3) {
+        wordInstruction = "Generate exactly 0 words — nothing comes through the noise. Return {\"words\": []}";
+      } else if (wordRoll < 0.65) {
+        wordInstruction = "Generate exactly 1 raw, primal word punching through static.";
+      } else {
+        wordInstruction = "Generate 2-3 raw, emotional fragments breaking through the noise.";
+      }
+    } else if (mode === "am") {
+      if (wordRoll < 0.2) {
+        wordInstruction = "Generate exactly 0 words — just static. Return {\"words\": []}";
+      } else if (wordRoll < 0.5) {
+        wordInstruction = "Generate exactly 1 vintage-sounding spirit word, like an old radio broadcast fragment.";
+      } else if (wordRoll < 0.8) {
+        wordInstruction = "Generate 2-3 crackling message fragments that sound like old radio transmissions.";
+      } else {
+        wordInstruction = "Generate 3-5 spirit words forming a fragmented old broadcast message.";
+      }
     } else {
-      wordInstruction = "Generate 3-5 spirit communication words forming a fragmented conversation or message. Mix single words with short phrases (1-4 words each).";
+      // FM default
+      if (wordRoll < 0.25) {
+        wordInstruction = "Generate exactly 0 words — total silence. Return {\"words\": []}";
+      } else if (wordRoll < 0.55) {
+        wordInstruction = "Generate exactly 1 short spirit word or fragment.";
+      } else if (wordRoll < 0.8) {
+        wordInstruction = "Generate 2-3 short spirit communication fragments.";
+      } else {
+        wordInstruction = "Generate 3-5 spirit communication words forming a fragmented conversation.";
+      }
     }
 
-    const prompt = `You are a supernatural spirit box radio receiver tuned to ${frequency?.toFixed(1) || "95.0"} MHz (${freqBand}).
+    const prompt = `You are a supernatural spirit box receiver. Mode: ${modeContext[mode] || modeContext.fm}
 
 ${wordInstruction}
 
@@ -70,7 +109,7 @@ The messages should vary between:
 - Cryptic references ("three", "the door", "water")
 - Occasional longer whispers
 
-For each word, rate the intensity: "faint" (barely audible), "clear" (distinct), or "strong" (unmistakable). Most should be faint.
+For each word, rate the intensity: "faint" (barely audible), "clear" (distinct), or "strong" (unmistakable).${mode === "evp" ? " EVP captures are almost always faint." : mode === "whitenoise" ? " White noise captures tend to be clear or strong when they break through." : " Most should be faint."}
 
 Respond ONLY with valid JSON:
 {"words": [{"word": "example", "intensity": "faint"}]}`;

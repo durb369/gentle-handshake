@@ -10,31 +10,86 @@ export interface SpiritWord {
   intensity: "faint" | "clear" | "strong";
 }
 
+export type ScanMode = "fm" | "am" | "whitenoise" | "evp";
+
+export const SCAN_MODE_INFO: Record<ScanMode, { label: string; description: string; icon: string }> = {
+  fm: { label: "FM Sweep", description: "Classic FM radio sweep across frequencies", icon: "Radio" },
+  am: { label: "AM Sweep", description: "Low-frequency AM band with crackly distortion", icon: "Gauge" },
+  whitenoise: { label: "White Noise", description: "Raw static — spirits shape the noise", icon: "AudioLines" },
+  evp: { label: "EVP Mode", description: "Ultra-quiet listening for electronic voice phenomena", icon: "Mic" },
+};
+
 interface SpiritBoxState {
   isScanning: boolean;
   currentFrequency: number;
-  scanSpeed: number; // 1-10
+  scanSpeed: number;
   words: SpiritWord[];
-  signalStrength: number; // 0-100
+  signalStrength: number;
+  scanMode: ScanMode;
 }
 
-// Web Audio API noise generator for that authentic spirit box crackle
-function createStaticNoise(audioCtx: AudioContext, gainNode: GainNode) {
+// Audio setup per mode
+function createModeAudio(audioCtx: AudioContext, gainNode: GainNode, mode: ScanMode) {
   const bufferSize = audioCtx.sampleRate * 0.5;
   const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
   const data = buffer.getChannelData(0);
+
+  // Fill noise buffer based on mode
   for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * 0.3;
+    switch (mode) {
+      case "am": {
+        // AM: heavier crackle with pops
+        const base = (Math.random() * 2 - 1) * 0.25;
+        const crackle = Math.random() < 0.02 ? (Math.random() - 0.5) * 1.2 : 0;
+        data[i] = base + crackle;
+        break;
+      }
+      case "whitenoise": {
+        // Pure white noise, louder
+        data[i] = (Math.random() * 2 - 1) * 0.4;
+        break;
+      }
+      case "evp": {
+        // Very quiet, almost silent with occasional micro-sounds
+        const quiet = (Math.random() * 2 - 1) * 0.06;
+        const whisper = Math.random() < 0.005 ? (Math.random() - 0.5) * 0.5 : 0;
+        data[i] = quiet + whisper;
+        break;
+      }
+      default: {
+        // FM: standard static
+        data[i] = (Math.random() * 2 - 1) * 0.3;
+      }
+    }
   }
+
   const source = audioCtx.createBufferSource();
   source.buffer = buffer;
   source.loop = true;
 
-  // Bandpass filter to simulate radio tuning
   const filter = audioCtx.createBiquadFilter();
-  filter.type = "bandpass";
-  filter.frequency.value = 2000;
-  filter.Q.value = 1.5;
+
+  switch (mode) {
+    case "am":
+      filter.type = "lowpass";
+      filter.frequency.value = 1200;
+      filter.Q.value = 0.8;
+      break;
+    case "whitenoise":
+      filter.type = "allpass";
+      filter.frequency.value = 3000;
+      filter.Q.value = 0.1;
+      break;
+    case "evp":
+      filter.type = "highpass";
+      filter.frequency.value = 3500;
+      filter.Q.value = 2.0;
+      break;
+    default: // fm
+      filter.type = "bandpass";
+      filter.frequency.value = 2000;
+      filter.Q.value = 1.5;
+  }
 
   source.connect(filter);
   filter.connect(gainNode);
@@ -42,6 +97,51 @@ function createStaticNoise(audioCtx: AudioContext, gainNode: GainNode) {
   source.start();
 
   return { source, filter };
+}
+
+// Frequency sweep behavior per mode
+function getFrequencyStep(mode: ScanMode, speed: number, currentFreq: number): { newFreq: number; min: number; max: number } {
+  switch (mode) {
+    case "am":
+      // AM: 530-1700 kHz range, displayed as 53.0-170.0 scaled
+      const amStep = speed * 0.8;
+      let amFreq = currentFreq + amStep;
+      if (amFreq > 170.0) amFreq = 53.0;
+      return { newFreq: amFreq, min: 53.0, max: 170.0 };
+    case "whitenoise":
+      // No sweep, just jitter
+      return { newFreq: 0 + Math.random() * 100, min: 0, max: 100 };
+    case "evp":
+      // Very slow creep
+      const evpStep = speed * 0.05;
+      let evpFreq = currentFreq + evpStep;
+      if (evpFreq > 108.0) evpFreq = 87.5;
+      return { newFreq: evpFreq, min: 87.5, max: 108.0 };
+    default:
+      // FM sweep
+      let fmFreq = currentFreq + (speed * 0.3);
+      if (fmFreq > 108.0) fmFreq = 87.5;
+      return { newFreq: fmFreq, min: 87.5, max: 108.0 };
+  }
+}
+
+// Filter modulation per mode during sweep
+function modulateFilter(mode: ScanMode, filter: BiquadFilterNode, freq: number, ranges: { min: number; max: number }) {
+  const normalized = (freq - ranges.min) / (ranges.max - ranges.min);
+  switch (mode) {
+    case "am":
+      filter.frequency.value = 400 + normalized * 800;
+      break;
+    case "whitenoise":
+      // Subtle random drift
+      filter.frequency.value = 1000 + Math.random() * 4000;
+      break;
+    case "evp":
+      filter.frequency.value = 3000 + normalized * 3000;
+      break;
+    default:
+      filter.frequency.value = 800 + normalized * 1025;
+  }
 }
 
 export function useSpiritBox() {
@@ -52,6 +152,7 @@ export function useSpiritBox() {
     scanSpeed: 5,
     words: [],
     signalStrength: 0,
+    scanMode: "fm",
   });
 
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -60,15 +161,11 @@ export function useSpiritBox() {
   const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const wordIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const frequencyRef = useRef(87.5);
+  const modeRef = useRef<ScanMode>("fm");
 
-  const updateFrequency = useCallback((freq: number) => {
-    frequencyRef.current = freq;
-    setState(prev => ({ ...prev, currentFrequency: freq }));
-
-    // Shift the filter frequency based on radio frequency for effect
-    if (sourceRef.current?.filter) {
-      sourceRef.current.filter.frequency.value = 800 + (freq - 87.5) * 50;
-    }
+  const setScanMode = useCallback((mode: ScanMode) => {
+    modeRef.current = mode;
+    setState(prev => ({ ...prev, scanMode: mode }));
   }, []);
 
   const fetchSpiritWords = useCallback(async () => {
@@ -80,6 +177,7 @@ export function useSpiritBox() {
           deviceId,
           frequency: frequencyRef.current,
           scanSpeed: state.scanSpeed,
+          scanMode: modeRef.current,
         },
       });
 
@@ -109,15 +207,15 @@ export function useSpiritBox() {
   }, [deviceId, state.scanSpeed]);
 
   const startScanning = useCallback(() => {
-    // Start audio
+    const mode = modeRef.current;
     const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
     audioCtxRef.current = audioCtx;
 
     const gain = audioCtx.createGain();
-    gain.gain.value = 0.15;
+    gain.gain.value = mode === "evp" ? 0.06 : 0.15;
     gainRef.current = gain;
 
-    const noiseSetup = createStaticNoise(audioCtx, gain);
+    const noiseSetup = createModeAudio(audioCtx, gain, mode);
     sourceRef.current = noiseSetup;
 
     setState(prev => ({ ...prev, isScanning: true }));
@@ -125,39 +223,42 @@ export function useSpiritBox() {
     // Frequency sweep
     scanIntervalRef.current = setInterval(() => {
       setState(prev => {
-        let newFreq = prev.currentFrequency + (prev.scanSpeed * 0.3);
-        if (newFreq > 108.0) newFreq = 87.5;
+        const { newFreq, min, max } = getFrequencyStep(modeRef.current, prev.scanSpeed, prev.currentFrequency);
         frequencyRef.current = newFreq;
 
-        // Randomize signal strength for visual flair
-        const signalStrength = Math.random() * 100;
+        const signalStrength = modeRef.current === "evp"
+          ? Math.random() * 40
+          : Math.random() * 100;
 
         if (sourceRef.current?.filter) {
-          sourceRef.current.filter.frequency.value = 800 + (newFreq - 87.5) * 50;
-          // Slight volume variation
+          modulateFilter(modeRef.current, sourceRef.current.filter, newFreq, { min, max });
           if (gainRef.current) {
-            gainRef.current.gain.value = 0.08 + Math.random() * 0.12;
+            const baseGain = modeRef.current === "evp" ? 0.03 : 0.08;
+            const variance = modeRef.current === "evp" ? 0.04 : 0.12;
+            gainRef.current.gain.value = baseGain + Math.random() * variance;
           }
         }
 
         return { ...prev, currentFrequency: newFreq, signalStrength };
       });
-    }, 200);
+    }, modeRef.current === "evp" ? 500 : 200);
 
-    // Sporadic word fetching - varies between silence and bursts
+    // Sporadic word fetching
     const fetchInterval = () => {
-      // Randomize delay: sometimes long silence (8-20s), sometimes quick bursts (2-4s)
       const roll = Math.random();
       let delay: number;
-      if (roll < 0.3) {
-        // Long silence - nothing for a while
-        delay = 8000 + Math.random() * 12000; // 8-20 seconds
-      } else if (roll < 0.6) {
-        // Medium gap
-        delay = 5000 + Math.random() * 5000; // 5-10 seconds
+
+      // EVP mode has longer silences
+      if (modeRef.current === "evp") {
+        delay = roll < 0.5 ? 12000 + Math.random() * 18000 : 6000 + Math.random() * 8000;
+      } else if (modeRef.current === "whitenoise") {
+        // White noise: medium cadence
+        delay = roll < 0.3 ? 6000 + Math.random() * 10000 : 3000 + Math.random() * 4000;
       } else {
-        // Quick burst - words come fast
-        delay = 2000 + Math.random() * 2000; // 2-4 seconds
+        // FM/AM
+        if (roll < 0.3) delay = 8000 + Math.random() * 12000;
+        else if (roll < 0.6) delay = 5000 + Math.random() * 5000;
+        else delay = 2000 + Math.random() * 2000;
       }
 
       wordIntervalRef.current = setTimeout(() => {
@@ -166,8 +267,7 @@ export function useSpiritBox() {
       }, delay) as unknown as ReturnType<typeof setInterval>;
     };
 
-    // Initial fetch after 3-6 seconds (don't always start immediately)
-    const initialDelay = 3000 + Math.random() * 3000;
+    const initialDelay = modeRef.current === "evp" ? 5000 + Math.random() * 5000 : 3000 + Math.random() * 3000;
     wordIntervalRef.current = setTimeout(() => {
       fetchSpiritWords();
       fetchInterval();
@@ -204,7 +304,6 @@ export function useSpiritBox() {
   }, []);
 
   const setTone = useCallback((tone: number) => {
-    // tone: 0-100, maps to filter frequency 400-6000 Hz
     if (sourceRef.current?.filter) {
       sourceRef.current.filter.frequency.value = 400 + (tone / 100) * 5600;
     }
@@ -214,7 +313,6 @@ export function useSpiritBox() {
     setState(prev => ({ ...prev, words: [] }));
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopScanning();
@@ -226,9 +324,9 @@ export function useSpiritBox() {
     startScanning,
     stopScanning,
     setScanSpeed,
+    setScanMode,
     setVolume,
     setTone,
     clearLog,
-    updateFrequency,
   };
 }
