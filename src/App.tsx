@@ -58,7 +58,9 @@ const App = () => {
                 <Route path="/psychic" element={<BoostedFeatures />} />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-                <Route path="/play-store-listing" element={<PlayStoreListing />} />
+                {import.meta.env.DEV && (
+                  <Route path="/play-store-listing" element={<PlayStoreListing />} />
+                )}
                 <Route path="/fortune-teller" element={<FortuneTeller />} />
                 <Route path="/spirit-box" element={<SpiritBox />} />
                 <Route path="*" element={<NotFound />} />
