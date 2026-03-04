@@ -77,25 +77,40 @@ const tiers: PricingTier[] = [
 ];
 
 const Pricing = () => {
-  const { isBoosted, productId, startCheckout, openCustomerPortal, loading } = useSubscription();
+  const { isBoosted, productId, startCheckout, openCustomerPortal, loading, isAndroid, purchaseProduct, restorePurchases, RC_PRODUCT_IDS } = useSubscription();
 
-  const handleSubscribe = useCallback(async (priceId: string) => {
-    const url = await startCheckout(undefined, priceId);
-    if (url) {
-      window.open(url, "_blank");
+  const handleSubscribe = useCallback(async (tier: PricingTier) => {
+    if (isAndroid) {
+      // Use RevenueCat on Android
+      const rcId = tier.name === "Premium" ? RC_PRODUCT_IDS.premium : RC_PRODUCT_IDS.boosted;
+      const success = await purchaseProduct(rcId);
+      if (!success) {
+        toast.error("Purchase was cancelled or failed. Please try again.");
+      }
     } else {
-      toast.error("Failed to start checkout. Please try again.");
+      // Use Stripe on web
+      const url = await startCheckout(undefined, tier.priceId!);
+      if (url) {
+        window.open(url, "_blank");
+      } else {
+        toast.error("Failed to start checkout. Please try again.");
+      }
     }
-  }, [startCheckout]);
+  }, [isAndroid, purchaseProduct, startCheckout, RC_PRODUCT_IDS]);
 
   const handleManageSubscription = useCallback(async () => {
+    if (isAndroid) {
+      // On Android, direct to Play Store subscription management
+      window.open("https://play.google.com/store/account/subscriptions", "_blank");
+      return;
+    }
     const url = await openCustomerPortal();
     if (url) {
       window.open(url, "_blank");
     } else {
       toast.error("Failed to open subscription management. Please try again.");
     }
-  }, [openCustomerPortal]);
+  }, [isAndroid, openCustomerPortal]);
 
   const isCurrentTier = (tier: PricingTier) => {
     if (!isBoosted && tier.priceId === null) return true;
@@ -197,7 +212,7 @@ const Pricing = () => {
                   <Button 
                     className={`w-full ${tier.highlighted ? '' : ''}`}
                     variant={tier.highlighted ? "default" : "secondary"}
-                    onClick={() => handleSubscribe(tier.priceId!)}
+                    onClick={() => handleSubscribe(tier)}
                   >
                     {isBoosted ? 'Upgrade' : 'Subscribe'}
                   </Button>

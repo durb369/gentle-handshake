@@ -9,7 +9,7 @@ import { DailyTarot } from "@/components/DailyTarot";
 import { useSubscription } from "@/hooks/useSubscription";
 
 export default function BoostedFeatures() {
-  const { isBoosted, loading, startCheckout } = useSubscription();
+  const { isBoosted, loading, startCheckout, isAndroid, purchaseProduct, RC_PRODUCT_IDS } = useSubscription();
   const [activeTab, setActiveTab] = useState("tarot");
 
   if (loading) {
@@ -64,8 +64,12 @@ export default function BoostedFeatures() {
 
             <Button
               onClick={async () => {
-                const url = await startCheckout();
-                if (url) window.open(url, "_blank");
+                if (isAndroid) {
+                  await purchaseProduct(RC_PRODUCT_IDS.boosted);
+                } else {
+                  const url = await startCheckout();
+                  if (url) window.open(url, "_blank");
+                }
               }}
               size="lg"
               className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700"

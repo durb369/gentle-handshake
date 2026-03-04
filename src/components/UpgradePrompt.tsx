@@ -4,19 +4,25 @@ import { useState } from "react";
 
 interface UpgradePromptProps {
   onUpgrade: (email?: string) => Promise<string | null>;
+  onAndroidPurchase?: () => Promise<boolean>;
+  isAndroid?: boolean;
   variant?: "inline" | "full" | "minimal";
   featureName?: string;
 }
 
-export function UpgradePrompt({ onUpgrade, variant = "inline", featureName }: UpgradePromptProps) {
+export function UpgradePrompt({ onUpgrade, onAndroidPurchase, isAndroid: isAndroidProp, variant = "inline", featureName }: UpgradePromptProps) {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
 
   const handleUpgrade = async () => {
     setLoading(true);
-    const url = await onUpgrade(email || undefined);
-    if (url) {
-      window.open(url, "_blank");
+    if (isAndroidProp && onAndroidPurchase) {
+      await onAndroidPurchase();
+    } else {
+      const url = await onUpgrade(email || undefined);
+      if (url) {
+        window.open(url, "_blank");
+      }
     }
     setLoading(false);
   };
