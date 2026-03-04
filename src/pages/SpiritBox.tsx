@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useSpiritBox, type SpiritWord, type ScanMode } from "@/hooks/useSpiritBox";
 import { useSpiritBoxSessions, type SpiritBoxSession } from "@/hooks/useSpiritBoxSessions";
 import { ScanModeSelector } from "@/components/spirit-box/ScanModeSelector";
+import { Oscilloscope } from "@/components/spirit-box/Oscilloscope";
 import { formatDistanceToNow, format } from "date-fns";
 
 function FrequencyDisplay({ frequency, isScanning, mode }: { frequency: number; isScanning: boolean; mode: ScanMode }) {
@@ -308,7 +309,7 @@ function SessionViewer({ session, onClose }: { session: SpiritBoxSession; onClos
 
 export default function SpiritBox() {
   const {
-    isScanning, currentFrequency, scanSpeed, words, signalStrength, scanMode,
+    isScanning, currentFrequency, scanSpeed, words, signalStrength, scanMode, analyserRef,
     startScanning, stopScanning, setScanSpeed, setScanMode, setVolume, setTone, clearLog,
   } = useSpiritBox();
 
@@ -371,6 +372,8 @@ export default function SpiritBox() {
 
         <div className="max-w-lg mx-auto space-y-6">
           <FrequencyDisplay frequency={currentFrequency} isScanning={isScanning} mode={scanMode} />
+
+          <Oscilloscope analyserRef={analyserRef} isScanning={isScanning} mode={scanMode} />
 
           <div className="text-center space-y-1">
             <div className="text-xs text-muted-foreground uppercase tracking-widest">Signal Strength</div>
