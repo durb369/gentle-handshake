@@ -157,6 +157,7 @@ export function useSpiritBox() {
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const gainRef = useRef<GainNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<{ source: AudioBufferSourceNode; filter: BiquadFilterNode } | null>(null);
   const scanIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const wordIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -214,6 +215,12 @@ export function useSpiritBox() {
     const gain = audioCtx.createGain();
     gain.gain.value = mode === "evp" ? 0.06 : 0.15;
     gainRef.current = gain;
+
+    // Create analyser for waveform visualization
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyserRef.current = analyser;
+    gain.connect(analyser);
 
     const noiseSetup = createModeAudio(audioCtx, gain, mode);
     sourceRef.current = noiseSetup;
@@ -287,6 +294,7 @@ export function useSpiritBox() {
     sourceRef.current = null;
     audioCtxRef.current = null;
     gainRef.current = null;
+    analyserRef.current = null;
     scanIntervalRef.current = null;
     wordIntervalRef.current = null;
 
@@ -321,6 +329,7 @@ export function useSpiritBox() {
 
   return {
     ...state,
+    analyserRef,
     startScanning,
     stopScanning,
     setScanSpeed,
